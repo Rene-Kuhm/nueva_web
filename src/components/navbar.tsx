@@ -2,30 +2,54 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import { ThemeToggle } from './theme-toggle'
 
 const navItems = [
-  { name: 'Inicio', href: '/' },
-  { name: 'Servicios', href: '/servicios' },
-  { name: 'Sobre Nosotros', href: '/sobre-nosotros' },
-  { name: 'Blog', href: '/blog' },
-  { name: 'Contacto', href: '/contacto' },
+  { name: 'Inicio', href: '#home' },
+  { name: 'Servicios', href: '#services' },
+  { name: 'Sobre Nosotros', href: '#about' },
+  { name: 'Blog', href: '#blog' },
+  { name: 'Contacto', href: '#contact' },
 ]
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [activeSection, setActiveSection] = useState('home')
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20)
+
+      // Detectar sección activa
+      const sections = navItems.map(item => item.href.slice(1))
+      const current = sections.find(section => {
+        const element = document.getElementById(section)
+        if (element) {
+          const rect = element.getBoundingClientRect()
+          return rect.top <= 100 && rect.bottom >= 100
+        }
+        return false
+      })
+
+      if (current) {
+        setActiveSection(current)
+      }
     }
 
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const scrollToSection = (href: string) => {
+    const element = document.getElementById(href.slice(1))
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+    setIsOpen(false)
+  }
 
   return (
     <motion.header
@@ -41,7 +65,8 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link
-            href="/"
+            href="#home"
+            onClick={() => scrollToSection('#home')}
             className="text-2xl font-bold tracking-tighter text-foreground"
           >
             <motion.div
@@ -64,9 +89,24 @@ export function Navbar() {
               >
                 <Link
                   href={item.href}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    scrollToSection(item.href)
+                  }}
+                  className={`relative text-sm font-medium transition-colors ${
+                    activeSection === item.href.slice(1)
+                      ? 'text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
                   {item.name}
+                  {activeSection === item.href.slice(1) && (
+                    <motion.div
+                      layoutId="activeSection"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
                 </Link>
               </motion.div>
             ))}
@@ -105,8 +145,15 @@ export function Navbar() {
                   >
                     <Link
                       href={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className="block text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        scrollToSection(item.href)
+                      }}
+                      className={`block text-sm font-medium transition-colors ${
+                        activeSection === item.href.slice(1)
+                          ? 'text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
                     >
                       {item.name}
                     </Link>
