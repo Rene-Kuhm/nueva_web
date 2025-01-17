@@ -184,17 +184,17 @@ export default function Home() {
                   key={i}
                   className="absolute h-40 w-40 rounded-full bg-primary/5"
                   initial={{
-                    x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-                    y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
+                    x: 500,
+                    y: 500,
                     scale: 0,
                   }}
                   animate={{
-                    x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
-                    y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
-                    scale: Math.random() * 2 + 0.5,
+                    x: 700,
+                    y: 700,
+                    scale: 1.5,
                   }}
                   transition={{
-                    duration: Math.random() * 10 + 5,
+                    duration: 10,
                     repeat: Infinity,
                     repeatType: 'reverse',
                   }}

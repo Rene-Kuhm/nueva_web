@@ -24,6 +24,9 @@ export function Navbar() {
   const isLandingPage = pathname === '/';
 
   const handleScroll = useCallback(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
     setScrolled(window.scrollY > 20);
 
     if (!isLandingPage) return;
@@ -32,7 +35,9 @@ export function Navbar() {
       .filter((item) => item.landingHref)
       .map((item) => ({
         id: item.landingHref?.slice(1),
-        element: document.getElementById(item.landingHref?.slice(1) || ''),
+        element: typeof document !== 'undefined' 
+          ? document.getElementById(item.landingHref?.slice(1) || '') 
+          : null,
       }))
       .filter(({ element }) => element);
 
@@ -45,7 +50,9 @@ export function Navbar() {
       const rect = element.getBoundingClientRect();
       const distance = Math.abs(rect.top);
 
-      if (distance < minDistance && rect.top <= window.innerHeight * 0.3 && rect.bottom >= 0) {
+      if (distance < minDistance && 
+          rect.top <= (typeof window !== 'undefined' ? window.innerHeight : 0) * 0.3 && 
+          rect.bottom >= 0) {
         minDistance = distance;
         currentSection = id || '';
       }
@@ -57,6 +64,9 @@ export function Navbar() {
   }, [isLandingPage, activeSection]);
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
     let rafId: number;
     let lastScrollY = window.scrollY;
 
@@ -82,8 +92,11 @@ export function Navbar() {
   const handleNavigation = useCallback((item: typeof navItems[0]) => {
     if (item.href.startsWith('#')) {
       if (isLandingPage) {
-        const element = document.getElementById(item.href.slice(1));
-        if (element) {
+        const element = typeof document !== 'undefined' 
+          ? document.getElementById(item.href.slice(1)) 
+          : null;
+        
+        if (element && typeof window !== 'undefined') {
           const navHeight = 64;
           const elementPosition = element.getBoundingClientRect().top;
           const offsetPosition = elementPosition + window.scrollY - navHeight;
