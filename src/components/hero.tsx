@@ -1,95 +1,55 @@
-'use client'
+'use client';
 
-import { useRef } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export function Hero() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end start'],
-  })
-
-  const y = useTransform(scrollYProgress, [0, 1], ['0%', '100%'])
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8])
-  const rotateX = useTransform(scrollYProgress, [0, 0.5], [0, 45])
-
   return (
-    <motion.div
-      ref={containerRef}
-      className="relative h-screen w-full overflow-hidden bg-background"
-      style={{
-        perspective: '1000px',
-      }}
-    >
-      <motion.div
-        className="relative h-full w-full"
-        style={{
-          y,
-          opacity,
-          scale,
-          rotateX,
-          transformStyle: 'preserve-3d',
-        }}
-      >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="mb-6 text-6xl font-bold tracking-tight text-foreground md:text-8xl"
-            >
-              Nueva Web
-              <span className="text-primary">.</span>
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="mb-8 text-lg text-muted-foreground md:text-xl"
-            >
-              Creando experiencias web únicas y memorables
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex justify-center space-x-4"
-            >
-              <div className="h-1 w-1 rounded-full bg-primary" />
-              <div className="h-1 w-1 rounded-full bg-primary" />
-              <div className="h-1 w-1 rounded-full bg-primary" />
-            </motion.div>
-          </div>
+    <section className="relative overflow-hidden pt-37 lg:pt-36">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col items-center gap-8 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
+          >
+            Transformamos Ideas en <span className="text-primary">Experiencias Digitales</span>{' '}
+            Excepcionales
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="max-w-2xl text-muted-foreground"
+          >
+            Somos expertos en desarrollo web y diseño de interfaces. Creamos soluciones digitales
+            innovadoras que impulsan el éxito de tu negocio.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-wrap justify-center gap-4"
+          >
+            <Link href="#contact">
+              <Button size="lg" className="gap-2">
+                Contáctanos
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Button variant="outline" size="lg">
+              Ver Proyectos
+            </Button>
+          </motion.div>
         </div>
-        
-        {/* Elementos decorativos animados */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute h-40 w-40 rounded-full bg-primary/5"
-              initial={{
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
-                scale: 0,
-              }}
-              animate={{
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
-                scale: Math.random() * 2 + 0.5,
-              }}
-              transition={{
-                duration: Math.random() * 10 + 5,
-                repeat: Infinity,
-                repeatType: 'reverse',
-              }}
-            />
-          ))}
-        </div>
-      </motion.div>
-    </motion.div>
-  )
+      </div>
+
+      {/* Decorative elements */}
+      <div className="absolute left-1/2 top-1/2 -z-10 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px]" />
+    </section>
+  );
 }

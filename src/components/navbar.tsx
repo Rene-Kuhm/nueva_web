@@ -1,172 +1,211 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Menu } from 'lucide-react'
-import Link from 'next/link'
-import { ThemeToggle } from './theme-toggle'
+import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
-  { name: 'Inicio', href: '#home' },
-  { name: 'Servicios', href: '#services' },
-  { name: 'Sobre Nosotros', href: '#about' },
-  { name: 'Blog', href: '#blog' },
-  { name: 'Contacto', href: '#contact' },
-]
+  { href: '#home', landingHref: '#home', name: 'Inicio' },
+  { href: '#services', landingHref: '#services', name: 'Servicios' },
+  { href: '#about', landingHref: '#about', name: 'Sobre Nosotros' },
+  { href: '/blog', name: 'Blog' },
+  { href: '#contact', landingHref: '#contact', name: 'Contacto' },
+];
 
 export function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const [activeSection, setActiveSection] = useState('home')
+  const [activeSection, setActiveSection] = useState('home');
+  const [scrolled, setScrolled] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const isLandingPage = pathname === '/';
+
+  const handleScroll = useCallback(() => {
+    setScrolled(window.scrollY > 20);
+
+    if (!isLandingPage) return;
+
+    const sections = navItems
+      .filter((item) => item.landingHref)
+      .map((item) => ({
+        id: item.landingHref?.slice(1),
+        element: document.getElementById(item.landingHref?.slice(1) || ''),
+      }))
+      .filter(({ element }) => element);
+
+    let currentSection = '';
+    let minDistance = Infinity;
+
+    sections.forEach(({ id, element }) => {
+      if (!element) return;
+
+      const rect = element.getBoundingClientRect();
+      const distance = Math.abs(rect.top);
+
+      if (distance < minDistance && rect.top <= window.innerHeight * 0.3 && rect.bottom >= 0) {
+        minDistance = distance;
+        currentSection = id || '';
+      }
+    });
+
+    if (currentSection && currentSection !== activeSection) {
+      setActiveSection(currentSection);
+    }
+  }, [isLandingPage, activeSection]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
+    let rafId: number;
+    let lastScrollY = window.scrollY;
 
-      // Detectar sección activa
-      const sections = navItems.map(item => item.href.slice(1))
-      const current = sections.find(section => {
-        const element = document.getElementById(section)
-        if (element) {
-          const rect = element.getBoundingClientRect()
-          return rect.top <= 100 && rect.bottom >= 100
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (Math.abs(window.scrollY - lastScrollY) > 5) {
+          handleScroll();
+          lastScrollY = window.scrollY;
         }
-        return false
-      })
+      });
+    };
 
-      if (current) {
-        setActiveSection(current)
+    window.addEventListener('scroll', onScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, [handleScroll]);
+
+  const handleNavigation = useCallback((item: typeof navItems[0]) => {
+    if (item.href.startsWith('#')) {
+      if (isLandingPage) {
+        const element = document.getElementById(item.href.slice(1));
+        if (element) {
+          const navHeight = 64;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.scrollY - navHeight;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth',
+          });
+        }
+      } else {
+        router.push(`/${item.href}`);
       }
+    } else {
+      router.push(item.href);
     }
+    setIsOpen(false);
+  }, [isLandingPage, router]);
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  const scrollToSection = (href: string) => {
-    const element = document.getElementById(href.slice(1))
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-    setIsOpen(false)
-  }
+  const isActiveItem = useCallback(
+    (item: typeof navItems[0]) => {
+      if (!item.href.startsWith('#')) {
+        return pathname === item.href;
+      }
+      return isLandingPage && activeSection === item.href.slice(1);
+    },
+    [pathname, isLandingPage, activeSection]
+  );
 
   return (
     <motion.header
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      className={`fixed top-0 z-50 w-full ${
-        scrolled
-          ? 'bg-background/80 backdrop-blur-lg shadow-lg'
-          : 'bg-transparent'
+      className={`fixed left-0 right-0 top-0 z-50 ${
+        scrolled ? 'bg-background/80 backdrop-blur-lg shadow-lg' : 'bg-transparent'
       } transition-all duration-300`}
     >
       <nav className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link
-            href="#home"
-            onClick={() => scrollToSection('#home')}
-            className="text-2xl font-bold tracking-tighter text-foreground"
-          >
+          <Link href="/" className="flex items-center space-x-2">
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               className="flex items-center space-x-2"
             >
               <div className="h-8 w-8 rounded-lg bg-primary" />
-              <span>Nueva<span className="text-primary">Web</span></span>
+              <span>
+                Kuhm<span className="text-primary">Dev</span>
+              </span>
             </motion.div>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
             {navItems.map((item) => (
-              <motion.div
-                key={item.name}
-                whileHover={{ y: -2 }}
-                whileTap={{ y: 0 }}
-              >
-                <Link
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    scrollToSection(item.href)
-                  }}
-                  className={`relative text-sm font-medium transition-colors ${
-                    activeSection === item.href.slice(1)
-                      ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+              <motion.div key={item.name} whileHover={{ y: -2 }} whileTap={{ y: 0 }}>
+                <button
+                  onClick={() => handleNavigation(item)}
+                  className={`relative px-4 py-2 rounded-md transition-colors ${
+                    isActiveItem(item)
+                      ? 'text-primary'
+                      : 'text-foreground/60 hover:text-foreground/80'
                   }`}
                 >
                   {item.name}
-                  {activeSection === item.href.slice(1) && (
+                  {isActiveItem(item) && (
                     <motion.div
                       layoutId="activeSection"
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="absolute -bottom-[2px] left-0 right-0 h-[2px] bg-primary"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 500,
+                        damping: 35,
+                      }}
                     />
                   )}
-                </Link>
+                </button>
               </motion.div>
             ))}
             <ThemeToggle />
           </div>
 
-          {/* Mobile Menu Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden"
-          >
-            <Menu className="h-6 w-6" />
-            <span className="sr-only">Toggle menu</span>
-          </motion.button>
+          {/* Mobile Navigation */}
+          <div className="flex items-center space-x-4 md:hidden">
+            <ThemeToggle />
+            <div
+              onClick={() => setIsOpen(!isOpen)}
+              className="rounded-lg p-2 hover:bg-muted cursor-pointer"
+            >
+              <Menu className="h-6 w-6" />
+            </div>
+          </div>
         </div>
-      </nav>
 
-      {/* Mobile Navigation */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute inset-x-0 top-16 bg-background/80 backdrop-blur-lg md:hidden"
-          >
-            <div className="container mx-auto px-4 py-4">
-              <div className="flex flex-col space-y-4">
-                {navItems.map((item) => (
-                  <motion.div
-                    key={item.name}
-                    whileHover={{ x: 4 }}
-                    whileTap={{ x: 0 }}
-                  >
-                    <Link
-                      href={item.href}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        scrollToSection(item.href)
-                      }}
-                      className={`block text-sm font-medium transition-colors ${
-                        activeSection === item.href.slice(1)
-                          ? 'text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  </motion.div>
-                ))}
-                <div className="pt-4">
-                  <ThemeToggle />
+        {/* Mobile Navigation Menu */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden"
+            >
+              <div className="container mx-auto px-4 py-4">
+                <div className="flex flex-col space-y-4">
+                  {navItems.map((item) => (
+                    <motion.div key={item.name} whileHover={{ x: 4 }} whileTap={{ x: 0 }}>
+                      <button
+                        onClick={() => handleNavigation(item)}
+                        className={`block text-sm font-medium transition-colors ${
+                          isActiveItem(item)
+                            ? 'text-primary'
+                            : 'text-foreground/60 hover:text-foreground/80'
+                        }`}
+                      >
+                        {item.name}
+                      </button>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
     </motion.header>
-  )
+  );
 }
