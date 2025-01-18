@@ -3,6 +3,12 @@
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { baseMetadata } from './metadata';
+import { Navbar } from '@/components/navbar';
+import { Footer } from '@/components/footer';
+import { ScrollToTop } from '@/components/scroll-to-top';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { SEOService } from '@/lib/seo';
+import { optimizeWebVitals } from '@/lib/performance';
 import '@/styles/globals.css';
 
 // Configuración de fuente optimizada
@@ -16,6 +22,11 @@ export default function RootLayout({
 }: { 
   children: React.ReactNode 
 }) {
+  // Ejecutar optimizaciones de rendimiento al montar
+  if (typeof window !== 'undefined') {
+    optimizeWebVitals();
+  }
+
   // Convertir keywords a string de manera segura
   const keywords = Array.isArray(baseMetadata.keywords) 
     ? baseMetadata.keywords.join(', ') 
@@ -68,22 +79,18 @@ export default function RootLayout({
           }
         `}</style>
 
-        {/* Carga diferida de estilos no críticos */}
-        <link 
-          rel="preload" 
-          href="/styles/non-critical.css" 
-          as="style" 
-          onLoad={() => {
-            // Lógica de carga de estilos
-            const link = document.querySelector('link[href="/styles/non-critical.css"]') as HTMLLinkElement;
-            if (link) {
-              link.rel = 'stylesheet';
-            }
+        {/* JSON-LD para rich snippets */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              SEOService.generateJsonLd({
+                title: 'René Kuhm - Desarrollador Web Full Stack',
+                description: 'Transformando ideas en soluciones digitales innovadoras.',
+              })
+            ),
           }}
         />
-        <noscript>
-          <link rel="stylesheet" href="/styles/non-critical.css" />
-        </noscript>
       </head>
       <body 
         className="min-h-screen bg-background text-foreground flex flex-col scroll-smooth"
@@ -95,7 +102,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ErrorBoundary>
+            <Navbar />
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+            <ScrollToTop />
+          </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>
