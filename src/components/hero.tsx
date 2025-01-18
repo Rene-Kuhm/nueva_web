@@ -7,13 +7,13 @@ import Link from 'next/link';
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-37 lg:pt-36">
+    <section className="relative overflow-hidden pt-37 lg:pt-36 animate-fade-in">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center gap-8 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
+            className="max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl animate-slide-up"
           >
             Transformamos Ideas en <span className="text-primary">Experiencias Digitales</span>{' '}
             Excepcionales
@@ -23,7 +23,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="max-w-2xl text-muted-foreground"
+            className="max-w-2xl text-muted-foreground animate-slide-up"
           >
             Somos expertos en desarrollo web y diseño de interfaces. Creamos soluciones digitales
             innovadoras que impulsan el éxito de tu negocio.
@@ -33,7 +33,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-wrap justify-center gap-4"
+            className="flex flex-wrap justify-center gap-4 animate-slide-up"
           >
             <Link href="#contact">
               <Button size="lg" className="gap-2">
@@ -49,7 +49,7 @@ export function Hero() {
       </div>
 
       {/* Decorative elements */}
-      <div className="absolute left-1/2 top-1/2 -z-10 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px]" />
+      <div className="absolute left-1/2 top-1/2 -z-10 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px] animate-fade-in" />
     </section>
   );
 }
