@@ -9,27 +9,27 @@ import { Newsletter } from './newsletter';
 const socialLinks = [
   {
     icon: Facebook,
-    href: 'https://facebook.com/yourusername',
+    href: 'https://www.facebook.com/TecnoDespegueLive',
     name: 'Facebook',
   },
   {
     icon: Twitter,
-    href: 'https://twitter.com/yourusername',
+    href: 'https://x.com/REPARO22',
     name: 'Twitter',
   },
   {
     icon: Instagram,
-    href: 'https://instagram.com/yourusername',
+    href: 'https://www.instagram.com/renekuhm/',
     name: 'Instagram',
   },
   {
     icon: Linkedin,
-    href: 'https://linkedin.com/in/yourusername',
+    href: 'https://www.linkedin.com/in/ren%C3%A9-kuhm-1aa88818a/',
     name: 'LinkedIn',
   },
   {
     icon: Github,
-    href: 'https://github.com/yourusername',
+    href: 'https://github.com/Rene-Kuhm',
     name: 'GitHub',
   },
 ];
@@ -81,22 +81,23 @@ export function Footer() {
             Transformamos ideas en soluciones digitales innovadoras. Desarrollamos aplicaciones web
             y móviles que impulsan tu negocio.
           </p>
-          
+
           {/* Social Links */}
           <div className="flex space-x-4">
-            {isMounted && socialLinks.map((social) => (
-              <motion.a
-                key={social.name}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="text-foreground/60 hover:text-primary transition-colors"
-              >
-                <social.icon className="h-5 w-5" />
-              </motion.a>
-            ))}
+            {isMounted &&
+              socialLinks.map((social) => (
+                <motion.a
+                  key={social.name}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="text-foreground/60 hover:text-primary transition-colors"
+                >
+                  <social.icon className="h-5 w-5" />
+                </motion.a>
+              ))}
           </div>
         </div>
 
@@ -104,9 +105,7 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-4">
           {footerNavItems.map((section) => (
             <div key={section.title}>
-              <h4 className="font-semibold mb-4 text-foreground/80">
-                {section.title}
-              </h4>
+              <h4 className="font-semibold mb-4 text-foreground/80">{section.title}</h4>
               <ul className="space-y-2">
                 {section.links.map((link) => (
                   <li key={link.name}>
