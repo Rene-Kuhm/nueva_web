@@ -1,49 +1,75 @@
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import '@/styles/globals.css';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
+import { ScrollToTop } from '@/components/scroll-to-top';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { SEOService } from '@/lib/seo';
+import { optimizeWebVitals } from '@/lib/performance';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
+const inter = Inter({ 
+  subsets: ['latin'], 
+  display: 'swap',
+  preload: true,
+  weight: ['400', '500', '600', '700']
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
+export const metadata: Metadata = SEOService.generateMetadata({
+  title: 'René Kuhm - Desarrollador Web Full Stack',
+  description: 'Transformando ideas en soluciones digitales innovadoras. Desarrollo de aplicaciones web y móviles que impulsan tu negocio.',
 });
-
-export const metadata: Metadata = {
-  title: 'kuhmDev',
-  description: 'Aplicación web moderna con Next.js',
-  icons: {
-    icon: [
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-    ],
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
-};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Ejecutar optimizaciones de rendimiento al montar
+  if (typeof window !== 'undefined') {
+    optimizeWebVitals();
+  }
+
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans bg-background text-foreground antialiased`}
+    <html 
+      lang="es" 
+      suppressHydrationWarning
+      className={`${inter.className} font-sans scroll-smooth antialiased`}
+    >
+      <head>
+        {/* Preconexiones y recursos críticos */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {/* Metadatos de rendimiento y SEO */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        
+        {/* JSON-LD para rich snippets */}
+        <script 
+          type="application/ld+json" 
+          dangerouslySetInnerHTML={{ 
+            __html: JSON.stringify(
+              SEOService.generateJsonLd({
+                title: 'René Kuhm - Desarrollador Web Full Stack',
+                description: 'Transformando ideas en soluciones digitales innovadoras.'
+              })
+            ) 
+          }} 
+        />
+      </head>
+      <body 
+        className="min-h-screen bg-background text-foreground flex flex-col"
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Navbar />
-          <main className="min-h-screen pt-16">{children}</main>
-          <Footer />
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Navbar />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+            <ScrollToTop />
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
