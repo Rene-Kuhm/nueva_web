@@ -1,10 +1,28 @@
-import { createInstance, i18n } from 'i18next';
+import { createInstance } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 // Definir tipos de recursos de idioma
-export interface LanguageResources {
-  [key: string]: {
-    translation: Record<string, string>;
+interface ContactTranslations {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  send: string;
+  success: string;
+  error: string;
+}
+
+interface Translations {
+  welcome: string;
+  home: string;
+  about: string;
+  projects: string;
+  contact: ContactTranslations;
+}
+
+interface LanguageResources {
+  [language: string]: {
+    translation: Translations;
   };
 }
 
@@ -17,38 +35,32 @@ const resources: LanguageResources = {
       home: 'Inicio',
       about: 'Sobre mí',
       projects: 'Proyectos',
-      contact: 'Contacto',
-      
-      // Mensajes de formulario
-      form: {
+      contact: {
         name: 'Nombre',
         email: 'Correo electrónico',
         subject: 'Asunto',
         message: 'Mensaje',
         send: 'Enviar',
-        success: 'Mensaje enviado exitosamente',
-        error: 'Hubo un error al enviar el mensaje'
+        success: 'Mensaje enviado con éxito',
+        error: 'Error al enviar el mensaje'
       }
     }
   },
   en: {
     translation: {
-      // Traducciones en inglés
+      // English translations
       welcome: 'Welcome',
       home: 'Home',
       about: 'About',
       projects: 'Projects',
-      contact: 'Contact',
-      
-      // Form messages
-      form: {
+      contact: {
         name: 'Name',
         email: 'Email',
         subject: 'Subject',
         message: 'Message',
         send: 'Send',
         success: 'Message sent successfully',
-        error: 'There was an error sending the message'
+        error: 'Error sending message'
       }
     }
   }

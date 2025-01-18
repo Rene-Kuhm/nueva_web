@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 // Función para limpiar caché y optimizar
 function optimizeProject() {
@@ -11,23 +11,23 @@ function optimizeProject() {
   try {
     // Limpiar caché de Next.js
     console.log('🧹 Limpiando caché de Next.js...');
-    execSync('npm run clean', { stdio: 'inherit' });
+    execSync('npx next clean', { stdio: 'inherit' });
 
-    // Instalar dependencias de forma optimizada
-    console.log('📦 Instalando dependencias...');
-    execSync('npm ci', { stdio: 'inherit' });
+    // Limpiar caché de npm
+    console.log('🧹 Limpiando caché de npm...');
+    execSync('npm cache clean --force', { stdio: 'inherit' });
 
-    // Optimizar dependencias
-    console.log('🔧 Optimizando dependencias...');
-    execSync('npm prune', { stdio: 'inherit' });
+    // Eliminar node_modules
+    console.log('🗑️ Eliminando node_modules...');
+    execSync('rm -rf node_modules', { stdio: 'inherit' });
 
-    // Compilación de producción
-    console.log('🏗️ Compilando para producción...');
+    // Reinstalar dependencias
+    console.log('📦 Reinstalando dependencias...');
+    execSync('npm install', { stdio: 'inherit' });
+
+    // Construir el proyecto
+    console.log('🏗️ Construyendo el proyecto...');
     execSync('npm run build', { stdio: 'inherit' });
-
-    // Analizar tamaño de paquetes
-    console.log('📊 Analizando tamaño de paquetes...');
-    execSync('npx webpack-bundle-analyzer .next/stats.json', { stdio: 'inherit' });
 
     console.log('✅ Optimización completada con éxito!');
   } catch (error) {
@@ -38,24 +38,27 @@ function optimizeProject() {
 
 // Función para limpiar archivos generados
 function cleanupFiles() {
-  const filesToRemove = [
-    '.next/cache',
-    'node_modules/.cache',
-    'build',
-    'dist',
+  const foldersToClean = [
+    '.next',
+    'out',
+    '.vercel',
+    '.turbo',
+    'node_modules/.cache'
   ];
 
-  filesToRemove.forEach(file => {
-    const fullPath = path.resolve(process.cwd(), file);
-    if (fs.existsSync(fullPath)) {
-      try {
-        fs.rmSync(fullPath, { recursive: true, force: true });
-        console.log(`🗑️ Eliminado: ${file}`);
-      } catch (error) {
-        console.warn(`⚠️ No se pudo eliminar ${file}:`, error);
+  console.log('🧹 Limpiando archivos temporales...');
+
+  try {
+    foldersToClean.forEach(folder => {
+      const folderPath = path.join(process.cwd(), folder);
+      if (fs.existsSync(folderPath)) {
+        fs.rmSync(folderPath, { recursive: true, force: true });
+        console.log(`✅ ${folder} eliminado`);
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.error('❌ Error al limpiar archivos:', error);
+  }
 }
 
 // Ejecutar funciones

@@ -1,4 +1,5 @@
-import { defineType, defineField } from 'sanity';
+import { defineField, defineType } from 'sanity';
+import type { StringRule, SlugRule, TextRule } from 'sanity';
 
 const category = defineType({
   name: 'category',
@@ -9,13 +10,23 @@ const category = defineType({
       name: 'title',
       title: 'Título',
       type: 'string',
-      validation: (Rule) => Rule.required().min(2).max(50)
+      validation: (rule: StringRule) => rule.required().min(2).max(50),
+    }),
+    defineField({
+      name: 'slug',
+      title: 'Slug',
+      type: 'slug',
+      options: {
+        source: 'title',
+        maxLength: 96,
+      },
+      validation: (rule: SlugRule) => rule.required(),
     }),
     defineField({
       name: 'description',
       title: 'Descripción',
       type: 'text',
-      validation: (Rule) => Rule.max(200)
+      validation: (rule: TextRule) => rule.max(200),
     }),
     defineField({
       name: 'color',

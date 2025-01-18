@@ -1,4 +1,11 @@
-import { defineType, defineField, PreviewValue } from 'sanity';
+import { defineType, defineField, PreviewValue, StringRule, SlugRule, ImageRule, ArrayRule } from 'sanity';
+
+type BlockContent = {
+  title: string;
+  type: 'block';
+  styles: Array<{ title: string; value: string }>;
+  lists: Array<never>;
+};
 
 const author = defineType({
   name: 'author',
@@ -9,7 +16,7 @@ const author = defineType({
       name: 'name',
       title: 'Nombre',
       type: 'string',
-      validation: (Rule) => Rule.required().min(2).max(50)
+      validation: (rule: StringRule) => rule.required().min(2).max(50)
     }),
     defineField({
       name: 'slug',
@@ -19,7 +26,7 @@ const author = defineType({
         source: 'name',
         maxLength: 96
       },
-      validation: (Rule) => Rule.required()
+      validation: (rule: SlugRule) => rule.required()
     }),
     defineField({
       name: 'image',
@@ -28,13 +35,21 @@ const author = defineType({
       options: {
         hotspot: true
       },
-      validation: (Rule) => Rule.required()
+      validation: (rule: ImageRule) => rule.required()
     }),
     defineField({
       name: 'bio',
       title: 'Biografía',
-      type: 'text',
-      validation: (Rule) => Rule.max(500)
+      type: 'array',
+      of: [
+        {
+          title: 'Block',
+          type: 'block',
+          styles: [{ title: 'Normal', value: 'normal' }],
+          lists: []
+        }
+      ],
+      validation: (rule: ArrayRule<BlockContent[]>) => rule.max(500)
     }),
     defineField({
       name: 'socialLinks',

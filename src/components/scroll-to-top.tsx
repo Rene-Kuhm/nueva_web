@@ -8,16 +8,16 @@ export function ScrollToTop() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const toggleVisibility = () => {
-      // Mostrar botón cuando se hace scroll más allá de 300px
-      window.scrollY > 300 ? setIsVisible(true) : setIsVisible(false);
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
     };
 
-    // Añadir event listener
-    window.addEventListener('scroll', toggleVisibility, { passive: true });
-
-    // Limpiar event listener
-    return () => window.removeEventListener('scroll', toggleVisibility);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToTop = () => {

@@ -1,10 +1,12 @@
 'use client';
 
+import { type FaqItem } from '@/types';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
-const faqData = [
+const faqData: FaqItem[] = [
   {
     question: '¿Qué servicios ofrece KuhmDev?',
     answer: 'Ofrecemos desarrollo de aplicaciones web, consultoría tecnológica, diseño UX/UI, y soluciones de software personalizadas para empresas y emprendedores.'
@@ -31,11 +33,17 @@ const faqData = [
   }
 ];
 
-export default function FAQPage() {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+export default function FaqPage() {
+  const [openItems, setOpenItems] = useState<Set<number>>(new Set());
 
-  const toggleFAQ = (index: number) => {
-    setActiveIndex(activeIndex === index ? null : index);
+  const toggleItem = (index: number) => {
+    const newOpenItems = new Set(openItems);
+    if (newOpenItems.has(index)) {
+      newOpenItems.delete(index);
+    } else {
+      newOpenItems.add(index);
+    }
+    setOpenItems(newOpenItems);
   };
 
   return (
@@ -51,14 +59,14 @@ export default function FAQPage() {
             className="border border-border/30 rounded-lg overflow-hidden"
           >
             <button
-              onClick={() => toggleFAQ(index)}
+              onClick={() => toggleItem(index)}
               className="w-full flex justify-between items-center p-4 text-left 
                          bg-background/50 hover:bg-background/70 transition-colors"
             >
               <span className="font-semibold text-foreground/80">
                 {faq.question}
               </span>
-              {activeIndex === index ? (
+              {openItems.has(index) ? (
                 <ChevronUp className="text-primary" />
               ) : (
                 <ChevronDown className="text-foreground/60" />
@@ -66,7 +74,7 @@ export default function FAQPage() {
             </button>
 
             <AnimatePresence>
-              {activeIndex === index && (
+              {openItems.has(index) && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -89,13 +97,10 @@ export default function FAQPage() {
         <p className="text-foreground/80 mb-6">
           Si no encontraste la respuesta que buscabas, no dudes en contactarnos.
         </p>
-        <a 
-          href="/#contact" 
-          className="px-6 py-3 bg-primary text-background rounded-lg 
-                     hover:bg-primary/90 transition-colors"
-        >
+        <Link href="/#contact" className="px-6 py-3 bg-primary text-background rounded-lg 
+                     hover:bg-primary/90 transition-colors">
           Contáctanos
-        </a>
+        </Link>
       </div>
     </div>
   );
