@@ -9,17 +9,17 @@
     }
   ],
   "env": {
-    "PYTHON_VERSION": "3.8.12",
-    "NODE_VERSION": "18.17.0"
+    "PYTHON_VERSION": "3.8.18",
+    "NODE_VERSION": "20.18.0"
   },
   "build": {
     "env": {
-      "PYTHON_VERSION": "3.8.12",
-      "NODE_VERSION": "18.17.0"
+      "PYTHON_VERSION": "3.8.18",
+      "NODE_VERSION": "20.18.0"
     }
   },
   "cacheDirectories": [
-    ".next/cache",
-    "node_modules/.cache"
+    "node_modules",
+    ".next/cache"
   ]
 }
