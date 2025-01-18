@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const body = await req.json();
     const { name, email, subject, message } = body;
 
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'KuhmDev <contacto@kuhmdev.com>',
       to: ['tu_email_personal@ejemplo.com'],
       subject: `Nuevo mensaje de contacto: ${subject}`,
@@ -21,9 +21,14 @@ export async function POST(req: NextRequest) {
       `,
     });
 
+    if (error) {
+      console.error('Error al enviar el email:', error);
+      return NextResponse.json({ error: 'Error al enviar el email' }, { status: 500 });
+    }
+
     return NextResponse.json({ message: 'Mensaje enviado exitosamente' }, { status: 200 });
   } catch (err) {
-    console.error('Error al enviar el email:', err);
+    console.error('Error al procesar el formulario:', err);
     return NextResponse.json({ error: 'Error al procesar el formulario' }, { status: 500 });
   }
 }
