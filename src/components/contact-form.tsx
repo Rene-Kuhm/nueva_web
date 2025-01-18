@@ -78,7 +78,8 @@ export function ContactForm() {
           message: result.error || 'Hubo un problema al enviar el mensaje',
         });
       }
-    } catch (error) {
+    } catch (networkError) {
+      console.error('Network error:', networkError);
       setFormStatus({
         type: 'error',
         message: 'Error de red. Por favor, intenta de nuevo.',
