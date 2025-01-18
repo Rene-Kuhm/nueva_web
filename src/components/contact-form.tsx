@@ -34,71 +34,54 @@ export function ContactForm() {
     message: '',
   });
 
-  const validateForm = (): boolean => {
-    if (!formData.name.trim()) {
-      setFormStatus({
-        type: 'error',
-        message: 'Por favor, ingresa tu nombre',
-      });
-      return false;
-    }
-
-    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setFormStatus({
-        type: 'error',
-        message: 'Por favor, ingresa un email válido',
-      });
-      return false;
-    }
-
-    if (!formData.subject.trim()) {
-      setFormStatus({
-        type: 'error',
-        message: 'Por favor, ingresa un asunto',
-      });
-      return false;
-    }
-
-    if (!formData.message.trim()) {
-      setFormStatus({
-        type: 'error',
-        message: 'Por favor, ingresa un mensaje',
-      });
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     setFormStatus({ type: null, message: '' });
 
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-
-    try {
-      // Aquí iría la lógica de envío del formulario
-      // Por ahora simularemos un delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      setFormStatus({
-        type: 'success',
-        message: '¡Gracias por tu mensaje! Te contactaremos pronto.',
-      });
-
-      // Limpiar el formulario después del éxito
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        message: '',
-      });
-    } catch {
+    // Validaciones básicas
+    if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
       setFormStatus({
         type: 'error',
-        message: 'Hubo un error al enviar el mensaje. Por favor, intenta nuevamente.',
+        message: 'Por favor, completa todos los campos',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Limpiar formulario
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: '',
+        });
+        setFormStatus({
+          type: 'success',
+          message: 'Mensaje enviado exitosamente. ¡Pronto nos pondremos en contacto!',
+        });
+      } else {
+        setFormStatus({
+          type: 'error',
+          message: result.error || 'Hubo un problema al enviar el mensaje',
+        });
+      }
+    } catch (error) {
+      setFormStatus({
+        type: 'error',
+        message: 'Error de red. Por favor, intenta de nuevo.',
       });
     } finally {
       setIsSubmitting(false);
