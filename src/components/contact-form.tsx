@@ -34,16 +34,47 @@ export function ContactForm() {
     message: '',
   });
 
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setFormStatus({ type: null, message: '' });
 
-    // Validaciones básicas
-    if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
+    if (!formData.name.trim()) {
       setFormStatus({
         type: 'error',
-        message: 'Por favor, completa todos los campos',
+        message: 'Por favor, ingresa tu nombre',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.email.trim() || !isValidEmail(formData.email)) {
+      setFormStatus({
+        type: 'error',
+        message: 'Por favor, ingresa un email válido',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.subject.trim()) {
+      setFormStatus({
+        type: 'error',
+        message: 'Por favor, ingresa un asunto',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!formData.message.trim()) {
+      setFormStatus({
+        type: 'error',
+        message: 'Por favor, ingresa un mensaje',
       });
       setIsSubmitting(false);
       return;
@@ -61,7 +92,6 @@ export function ContactForm() {
       const result = await response.json();
 
       if (response.ok) {
-        // Limpiar formulario
         setFormData({
           name: '',
           email: '',
