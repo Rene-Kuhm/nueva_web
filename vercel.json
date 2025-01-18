@@ -17,9 +17,5 @@
       "PYTHON_VERSION": "3.8.18",
       "NODE_VERSION": "20.18.0"
     }
-  },
-  "cacheDirectories": [
-    "node_modules",
-    ".next/cache"
-  ]
+  }
 }
