@@ -4,15 +4,7 @@ module.exports = {
   extends: [
     'next/core-web-vitals'
   ],
-  plugins: [],
   rules: {
-    // Personaliza las reglas según sea necesario
-    'no-unused-vars': 'warn',
-    '@next/next/no-img-element': 'warn'
-  },
-  settings: {
-    next: {
-      rootDir: ['./']
-    }
+    // Reglas personalizadas si es necesario
   }
 };
