@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
     const { name, email, subject, message } = body;
 
     const { error } = await resend.emails.send({
-      from: 'KuhmDev <contacto@kuhmdev.com>',
-      to: [process.env.CONTACT_FORM_EMAIL || 'contacto@kuhmdev.com'],
+      from: `${process.env.CONTACT_SENDER_NAME || 'Contacto Web'} <${process.env.CONTACT_SENDER_EMAIL || 'contacto@website.com'}>`,
+      to: [process.env.CONTACT_FORM_EMAIL || process.env.CONTACT_SENDER_EMAIL || 'contacto@website.com'],
       subject: `Nuevo mensaje de contacto: ${subject}`,
       html: `
         <h1>Nuevo mensaje de contacto</h1>
