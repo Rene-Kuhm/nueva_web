@@ -74,36 +74,62 @@ class PerformanceMonitor {
 
 export const performanceMonitor = PerformanceMonitor.getInstance();
 
-export const preloadResources = () => {
+// Funciones de optimización de rendimiento
+
+export function optimizeWebVitals() {
   if (typeof window !== 'undefined') {
-    // Precargar recursos críticos
-    const links = [
-      { rel: 'preload', href: '/fonts/inter-latin.woff2', as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
-      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
-    ];
-
-    links.forEach(link => {
-      const preloadLink = document.createElement('link');
-      Object.entries(link).forEach(([key, value]) => {
-        preloadLink.setAttribute(key, value as string);
+    // Configurar métricas web vitales
+    const perfEntries = performance.getEntriesByType('navigation');
+    
+    if (perfEntries.length > 0) {
+      const navigationEntry = perfEntries[0] as PerformanceNavigationTiming;
+      
+      // Métricas de carga
+      const loadTime = navigationEntry.loadEventEnd - navigationEntry.startTime;
+      const ttfb = navigationEntry.responseStart - navigationEntry.startTime;
+      const domInteractive = navigationEntry.domInteractive - navigationEntry.startTime;
+      
+      // Registro de métricas
+      console.log('Performance Metrics:', {
+        loadTime: `${loadTime.toFixed(2)}ms`,
+        timeToFirstByte: `${ttfb.toFixed(2)}ms`,
+        domInteractive: `${domInteractive.toFixed(2)}ms`
       });
-      document.head.appendChild(preloadLink);
-    });
-  }
-};
+    }
 
-export const lazyLoadImages = () => {
-  if ('loading' in HTMLImageElement.prototype) {
-    const images = document.querySelectorAll('img[loading="lazy"]');
-    images.forEach(img => {
-      img.setAttribute('loading', 'lazy');
-    });
+    // Optimizar recursos
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(() => {
+        // Tareas de baja prioridad
+        prefetchCriticalResources();
+      });
+    }
   }
-};
+}
 
-export const optimizeWebVitals = () => {
-  preloadResources();
-  performanceMonitor.trackPageLoad();
-  lazyLoadImages();
-};
+function prefetchCriticalResources() {
+  const criticalResources = [
+    '/fonts/inter.woff2',
+    '/favicon.ico',
+    // Añade aquí otros recursos críticos
+  ];
+
+  criticalResources.forEach(resource => {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = resource;
+    document.head.appendChild(link);
+  });
+}
+
+// Función para medir el tiempo de carga de componentes
+export function measureComponentPerformance(
+  componentName: string, 
+  renderCallback: () => void
+) {
+  const start = performance.now();
+  renderCallback();
+  const end = performance.now();
+
+  console.log(`Render time for ${componentName}: ${(end - start).toFixed(2)}ms`);
+}

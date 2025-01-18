@@ -12,9 +12,10 @@ import { SEOService } from '@/lib/seo';
 import { optimizeWebVitals } from '@/lib/performance';
 import type { ReactNode } from 'react';
 
+// Configuración de fuente optimizada
 const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700']
+  weight: ['400', '500', '600', '700'],
 });
 
 export default function RootLayout({
@@ -36,10 +37,13 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={inter.className}
-      style={{ colorScheme: 'light' }}
+      className={`${inter.className} scroll-smooth`}
+      style={{ colorScheme: 'light', fontFamily: inter.style.fontFamily }}
     >
       <head>
+        {/* Precargar recursos críticos */}
+        <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        
         {/* Preconexiones y recursos críticos */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -68,6 +72,13 @@ export default function RootLayout({
             ),
           }}
         />
+
+        {/* Estilos críticos en línea */}
+        <style jsx global>{`
+          :root {
+            --font-inter: ${inter.style.fontFamily};
+          }
+        `}</style>
       </head>
       <body
         className="min-h-screen bg-background text-foreground flex flex-col scroll-smooth"
