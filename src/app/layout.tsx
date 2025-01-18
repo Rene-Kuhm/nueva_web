@@ -2,6 +2,7 @@
 
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
+import { baseMetadata } from './metadata';
 import '@/styles/globals.css';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
@@ -26,11 +27,17 @@ export default function RootLayout({
     optimizeWebVitals();
   }
 
+  // Convertir keywords a string de manera segura
+  const keywords = Array.isArray(baseMetadata.keywords)
+    ? baseMetadata.keywords.join(', ')
+    : baseMetadata.keywords || '';
+
   return (
     <html
       lang="es"
       suppressHydrationWarning
       className={inter.className}
+      style={{ colorScheme: 'light' }}
     >
       <head>
         {/* Preconexiones y recursos críticos */}
@@ -41,10 +48,13 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+          content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
         />
         <meta name="theme-color" content="#000000" />
         <link rel="icon" href="/favicon.ico" />
+        <title>{baseMetadata.title as string}</title>
+        <meta name="description" content={baseMetadata.description as string} />
+        <meta name="keywords" content={keywords} />
 
         {/* JSON-LD para rich snippets */}
         <script
@@ -59,7 +69,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-background text-foreground flex flex-col">
+      <body
+        className="min-h-screen bg-background text-foreground flex flex-col scroll-smooth"
+        aria-label="Contenido principal de KuhmDev"
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
