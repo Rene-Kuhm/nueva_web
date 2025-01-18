@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm install --force && npm run build",
   "installCommand": "npm install",
   "framework": "nextjs",
   "builds": [
@@ -10,7 +10,7 @@
     }
   ],
   "env": {
-    "PYTHON_VERSION": "3.11.7",
-    "RUBY_VERSION": "3.0.2"
+    "PYTHON_VERSION": "3.9.18",
+    "NODE_VERSION": "18.17.0"
   }
 }
