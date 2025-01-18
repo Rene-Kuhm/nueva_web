@@ -1,43 +1,14 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // Implementación simple de rate limiting en memoria
 const rateLimiter = new Map<string, { count: number; timestamp: number }>();
 
-const RATE_LIMIT = {
-  MAX_REQUESTS: 100,
-  WINDOW_MS: 60000, // 1 minuto
-};
-
-const checkRateLimit = (ip: string): boolean => {
-  const now = Date.now();
-  const windowStart = now - RATE_LIMIT.WINDOW_MS;
-
-  // Limpiar entradas antiguas
-  for (const [key, value] of rateLimiter.entries()) {
-    if (value.timestamp < windowStart) {
-      rateLimiter.delete(key);
-    }
-  }
-
-  const current = rateLimiter.get(ip) || { count: 0, timestamp: now };
-  
-  if (current.timestamp < windowStart) {
-    current.count = 0;
-    current.timestamp = now;
-  }
-
-  if (current.count >= RATE_LIMIT.MAX_REQUESTS) {
-    return false;
-  }
-
-  current.count++;
-  rateLimiter.set(ip, current);
-  return true;
-};
+const RATE_LIMIT = 10; // Número máximo de solicitudes
+const WINDOW_MS = 60 * 1000; // Ventana de tiempo: 1 minuto
 
 // Configuración de seguridad y rendimiento
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   // Crear respuesta por defecto
   const response = NextResponse.next();
 
@@ -79,16 +50,38 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // Rate limiting
-  const ip = request.ip ?? '127.0.0.1';
+  // Obtener IP de manera compatible
+  const ip = 
+    request.headers.get('x-forwarded-for')?.split(',')[0] || 
+    request.headers.get('x-real-ip') || 
+    '127.0.0.1';
 
-  if (!checkRateLimit(ip)) {
-    return new NextResponse('Too Many Requests', {
-      status: 429,
-      headers: {
-        'Retry-After': '60',
-      },
-    });
+  const now = Date.now();
+  const windowStart = now - WINDOW_MS;
+
+  // Limpiar entradas antiguas usando un método más compatible
+  Array.from(rateLimiter.entries()).forEach(([key, value]) => {
+    if (value.timestamp < windowStart) {
+      rateLimiter.delete(key);
+    }
+  });
+
+  // Verificar límite de tasa
+  const entry = rateLimiter.get(ip);
+  if (entry) {
+    if (entry.count >= RATE_LIMIT) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Demasiadas solicitudes' }),
+        { 
+          status: 429, 
+          headers: { 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    entry.count++;
+    entry.timestamp = now;
+  } else {
+    rateLimiter.set(ip, { count: 1, timestamp: now });
   }
 
   return response;

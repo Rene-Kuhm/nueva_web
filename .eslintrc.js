@@ -1,58 +1,18 @@
+/** @type {import('eslint').Linter.Config} */
 module.exports = {
+  root: true,
   extends: [
     'next/core-web-vitals'
   ],
-  
-  plugins: [
-    '@typescript-eslint',
-    'react'
-  ],
-  
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 2023,
-    sourceType: 'module',
-    ecmaFeatures: {
-      jsx: true
-    }
-  },
-  
+  plugins: [],
   rules: {
-    // TypeScript
-    '@typescript-eslint/no-unused-vars': 'warn',
-    '@typescript-eslint/no-explicit-any': 'warn',
-    
-    // React
-    'react/react-in-jsx-scope': 'off',
-    'react/prop-types': 'off',
-    
-    // ES Modules
-    'import/no-commonjs': 'error'
+    // Personaliza las reglas según sea necesario
+    'no-unused-vars': 'warn',
+    '@next/next/no-img-element': 'warn'
   },
-  
-  overrides: [
-    {
-      files: ['scripts/**/*.js'],
-      rules: {
-        '@typescript-eslint/no-var-requires': 'off',
-        'import/no-commonjs': 'off'
-      }
-    }
-  ],
-  
   settings: {
-    react: {
-      version: 'detect'
+    next: {
+      rootDir: ['./']
     }
-  },
-  
-  ignorePatterns: [
-    'node_modules/',
-    '.next/',
-    'out/',
-    'public/',
-    '*.config.js',
-    '*.config.mjs',
-    '.eslintrc.js'
-  ]
+  }
 };

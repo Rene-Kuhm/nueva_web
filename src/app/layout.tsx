@@ -16,11 +16,6 @@ const inter = Inter({
   weight: ['400', '500', '600', '700']
 });
 
-export const metadata = {
-  title: process.env.NEXT_PUBLIC_SITE_NAME || 'Nueva Web',
-  description: process.env.NEXT_PUBLIC_SITE_DESCRIPTION || 'Mi nueva web con Next.js',
-};
-
 export default function RootLayout({
   children,
 }: {
@@ -68,17 +63,17 @@ export default function RootLayout({
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+          enableSystem={true}
+          disableTransitionOnChange={true}
         >
-          <Navbar />
-          <main className="flex-grow">
-            <ErrorBoundary>
+          <ErrorBoundary>
+            <Navbar />
+            <main className="flex-grow">
               {children}
-            </ErrorBoundary>
-          </main>
-          <Footer />
-          <ScrollToTop />
+            </main>
+            <Footer />
+            <ScrollToTop />
+          </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>

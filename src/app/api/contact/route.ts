@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
         <p><strong>Asunto:</strong> ${subject}</p>
         <p><strong>Mensaje:</strong> ${message}</p>
       `,
-      replyTo: email,
+      reply_to: email,
     });
 
     if (error) {
