@@ -10,15 +10,16 @@ export async function POST(req: NextRequest) {
 
     const { error } = await resend.emails.send({
       from: 'KuhmDev <contacto@kuhmdev.com>',
-      to: ['tu_email_personal@ejemplo.com'],
+      to: [process.env.CONTACT_FORM_EMAIL || 'contacto@kuhmdev.com'],
       subject: `Nuevo mensaje de contacto: ${subject}`,
       html: `
         <h1>Nuevo mensaje de contacto</h1>
         <p><strong>Nombre:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Email del remitente:</strong> ${email}</p>
         <p><strong>Asunto:</strong> ${subject}</p>
         <p><strong>Mensaje:</strong> ${message}</p>
       `,
+      replyTo: email,
     });
 
     if (error) {
