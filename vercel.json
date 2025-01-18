@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install --force && npm run build",
-  "installCommand": "npm install",
+  "buildCommand": "npm ci && npm run build",
   "framework": "nextjs",
   "builds": [
     {
@@ -10,7 +9,17 @@
     }
   ],
   "env": {
-    "PYTHON_VERSION": "3.9.18",
+    "PYTHON_VERSION": "3.8.12",
     "NODE_VERSION": "18.17.0"
-  }
+  },
+  "build": {
+    "env": {
+      "PYTHON_VERSION": "3.8.12",
+      "NODE_VERSION": "18.17.0"
+    }
+  },
+  "cacheDirectories": [
+    ".next/cache",
+    "node_modules/.cache"
+  ]
 }

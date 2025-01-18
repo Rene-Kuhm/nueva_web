@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import '@/styles/globals.css';
@@ -8,71 +9,23 @@ import { ScrollToTop } from '@/components/scroll-to-top';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { SEOService } from '@/lib/seo';
 import { optimizeWebVitals } from '@/lib/performance';
+import type { ReactNode } from 'react';
 
 const inter = Inter({
   subsets: ['latin'],
-  display: 'swap',
-  preload: true,
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700']
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://kuhmdev.com.ar'),
-  title: {
-    template: '%s | René Kuhm',
-    default: 'René Kuhm | Desarrollador Web Full Stack',
-  },
-  description:
-    'Desarrollador web full stack especializado en React, Next.js y Node.js. Creando soluciones web modernas y eficientes.',
-  keywords: [
-    'desarrollador web',
-    'full stack',
-    'react',
-    'next.js',
-    'node.js',
-    'typescript',
-    'javascript',
-  ],
-  authors: [{ name: 'René Kuhm' }],
-  creator: 'René Kuhm',
-  openGraph: {
-    type: 'website',
-    locale: 'es_ES',
-    siteName: 'René Kuhm',
-    title: 'René Kuhm | Desarrollador Web Full Stack',
-    description:
-      'Desarrollador web full stack especializado en React, Next.js y Node.js. Creando soluciones web modernas y eficientes.',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'René Kuhm - Desarrollador Web Full Stack',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'René Kuhm | Desarrollador Web Full Stack',
-    description:
-      'Desarrollador web full stack especializado en React, Next.js y Node.js. Creando soluciones web modernas y eficientes.',
-    images: ['/og-image.jpg'],
-    creator: '@renekuhm',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
+export const metadata = {
+  title: process.env.NEXT_PUBLIC_SITE_NAME || 'Nueva Web',
+  description: process.env.NEXT_PUBLIC_SITE_DESCRIPTION || 'Mi nueva web con Next.js',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   // Ejecutar optimizaciones de rendimiento al montar
   if (typeof window !== 'undefined') {
     optimizeWebVitals();
@@ -82,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${inter.className} font-sans scroll-smooth antialiased`}
+      className={inter.className}
     >
       <head>
         {/* Preconexiones y recursos críticos */}
@@ -90,10 +43,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
         {/* Metadatos de rendimiento y SEO */}
+        <meta charSet="utf-8" />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
+        <meta name="theme-color" content="#000000" />
+        <link rel="icon" href="/favicon.ico" />
 
         {/* JSON-LD para rich snippets */}
         <script
@@ -109,19 +65,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-background text-foreground flex flex-col">
-        <ErrorBoundary>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-            <ScrollToTop />
-          </ThemeProvider>
-        </ErrorBoundary>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Navbar />
+          <main className="flex-grow">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
+          <Footer />
+          <ScrollToTop />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -80,8 +80,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Rate limiting
-  const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : '127.0.0.1';
+  const ip = request.ip ?? '127.0.0.1';
 
   if (!checkRateLimit(ip)) {
     return new NextResponse('Too Many Requests', {
