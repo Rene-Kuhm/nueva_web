@@ -1,6 +1,6 @@
 import post from './documents/post';
-import author from './documents/author';
-import category from './documents/category';
+import autor from './documents/author';
+import categoria from './documents/category';
 
 import blockContent from './objects/blockContent';
 import seo from './objects/seo';
@@ -8,9 +8,9 @@ import seo from './objects/seo';
 export const schemaTypes = [
   // Documentos
   post,
-  author,
-  category,
-  
+  autor,
+  categoria,
+
   // Objetos
   blockContent,
   seo
