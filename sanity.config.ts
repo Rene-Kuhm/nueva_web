@@ -2,6 +2,8 @@ import { defineConfig } from 'sanity'
 import { deskTool } from 'sanity/desk'
 import { visionTool } from '@sanity/vision'
 import { media } from 'sanity-plugin-media'
+import { colorInput } from '@sanity/color-input'
+import { codeInput } from '@sanity/code-input'
 import { schemaTypes } from './sanity/schemas' // Corregida la ruta a la ubicación correcta
 
 export default defineConfig({
@@ -15,6 +17,8 @@ export default defineConfig({
     deskTool(),
     visionTool(),
     media(),
+    colorInput(),
+    codeInput(),
   ],
   schema: {
     types: schemaTypes,
