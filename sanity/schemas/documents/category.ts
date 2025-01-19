@@ -1,7 +1,6 @@
-import { defineField, defineType } from 'sanity';
-import type { StringRule, SlugRule, TextRule } from 'sanity';
+import { defineType, defineField } from 'sanity'
 
-const category = defineType({
+export default defineType({
   name: 'category',
   title: 'Categoría',
   type: 'document',
@@ -10,7 +9,7 @@ const category = defineType({
       name: 'title',
       title: 'Título',
       type: 'string',
-      validation: (rule: StringRule) => rule.required().min(2).max(50),
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'slug',
@@ -20,36 +19,17 @@ const category = defineType({
         source: 'title',
         maxLength: 96,
       },
-      validation: (rule: SlugRule) => rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'description',
       title: 'Descripción',
       type: 'text',
-      validation: (rule: TextRule) => rule.max(200),
     }),
     defineField({
       name: 'color',
       title: 'Color',
-      type: 'color'
-    })
+      type: 'color',
+    }),
   ],
-  preview: {
-    select: {
-      title: 'title',
-      color: 'color'
-    },
-    prepare(selection: { 
-      title: string, 
-      color?: string 
-    }) {
-      const { title, color } = selection;
-      return {
-        title,
-        subtitle: color ? `Color: ${color}` : 'Sin color',
-      };
-    }
-  }
-});
-
-export default category;
+})
