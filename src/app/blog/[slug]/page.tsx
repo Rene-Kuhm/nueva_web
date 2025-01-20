@@ -90,11 +90,13 @@ function getPostQuery(slug: string) {
   }`;
 }
 
-export async function generateMetadata(
-  props: { params: { slug: string } }
-): Promise<Metadata> {
-  const post = await sanityFetch<PostDetail>(getPostQuery(props.params.slug));
-  
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string }
+}): Promise<Metadata> {
+  const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
+
   return {
     title: post?.title || 'Blog Post',
     description: post?.description || 'Blog post details',
@@ -106,9 +108,13 @@ export async function generateMetadata(
   };
 }
 
-export default async function BlogPostDetail(props: { params: { slug: string } }) {
+export default async function BlogPostDetail({
+  params,
+}: {
+  params: { slug: string }
+}) {
   try {
-    const post = await sanityFetch<PostDetail>(getPostQuery(props.params.slug));
+    const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
     if (!post) {
       return (
