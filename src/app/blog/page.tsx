@@ -30,47 +30,30 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Validate Sanity configuration
-  const validateSanityConfig = () => {
-    const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || process.env.SANITY_PROJECT_ID;
-    const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || process.env.SANITY_DATASET;
-
-    const configIssues: string[] = [];
-
-    if (!projectId) {
-      configIssues.push('Sanity Project ID is missing');
-    }
-
-    if (!dataset) {
-      configIssues.push('Sanity Dataset is missing');
-    }
-
-    return configIssues.length > 0 ? configIssues : null;
-  };
-
   useEffect(() => {
     async function fetchPosts() {
-      // Check configuration before fetching
-      const configErrors = validateSanityConfig();
-      if (configErrors) {
-        setError(`Configuration Error: ${configErrors.join(', ')}`);
-        setLoading(false);
-        return;
-      }
-
       try {
+        // Validate configuration
+        const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+        const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
+
+        if (!projectId || !dataset) {
+          throw new Error('Sanity configuration is incomplete');
+        }
+
+        // Fetch posts
         const fetchedPosts = await sanityFetch<Post[]>(POSTS_QUERY);
         
-        // Additional validation of fetched posts
+        // Validate fetched posts
         if (!fetchedPosts || fetchedPosts.length === 0) {
-          setError('No blog posts found. Verify your Sanity dataset contains published posts.');
+          setError('No blog posts found. Check your Sanity dataset.');
         } else {
           setPosts(fetchedPosts);
         }
         
         setLoading(false);
       } catch (err) {
-        console.error('Detailed error fetching posts:', err);
+        console.error('Error fetching posts:', err);
         setError(
           err instanceof Error 
             ? `Failed to load blog posts: ${err.message}` 
@@ -103,7 +86,7 @@ export default function BlogPage() {
         <div className="bg-white border border-gray-200 rounded-lg p-4 text-left">
           <h3 className="font-bold mb-2 text-gray-700">Troubleshooting Steps:</h3>
           <ul className="list-disc list-inside text-gray-600 space-y-2">
-            <li>Verify Sanity project configuration</li>
+            <li>Verify Sanity project ID and dataset</li>
             <li>Check environment variables</li>
             <li>Ensure blog posts exist in your dataset</li>
             <li>Confirm network connectivity</li>
