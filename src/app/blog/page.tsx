@@ -32,15 +32,24 @@ interface Category {
   description?: string;
 }
 
+// Initialize Sanity client with more detailed configuration
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   apiVersion: '2023-01-01',
-  useCdn: false, // Disable CDN to avoid caching issues
+  useCdn: false,
   perspective: 'published',
-  token: process.env.SANITY_API_TOKEN, // Optional: add API token if available
+  token: process.env.SANITY_API_TOKEN,
 });
 
+// Simple test query to verify Sanity connection
+const TEST_QUERY = `*[_type == "post"][0...5]{
+  title,
+  _id,
+  _createdAt
+}`;
+
+// Main posts query
 const POSTS_QUERY = `*[_type == "post"] {
   title,
   "excerpt": coalesce(description, "Sin descripción"),
@@ -68,48 +77,78 @@ export default function BlogPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Compute category counts
   const categoryCounts = useMemo(() => {
-    return posts.reduce((acc, post) => {
-      const category = post.category || 'Sin categoría';
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    return posts.reduce(
+      (acc, post) => {
+        const category = post.category || 'Sin categoría';
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
   }, [posts]);
 
-  // Derive sidebar categories from both fetched categories and post categories
+  // Derive sidebar categories
   const sidebarCategories = useMemo(() => {
-    // If Sanity categories are available, use them with counts
-    if (categories.length > 0) {
-      return categories.map(category => ({
-        title: category.title,
-        count: categoryCounts[category.title] || 0
-      }));
-    }
-    
-    // Fallback to generating categories from posts
-    return Object.entries(categoryCounts).map(([title, count]) => ({
-      title,
-      count
-    }));
+    return categories.length > 0
+      ? categories.map((category) => ({
+          title: category.title,
+          count: categoryCounts[category.title] || 0,
+        }))
+      : Object.entries(categoryCounts).map(([title, count]) => ({
+          title,
+          count,
+        }));
   }, [categories, categoryCounts]);
+
+  // Test Sanity connection
+  const testSanityConnection = async () => {
+    try {
+      console.log('Testing Sanity connection...');
+      console.log('Project ID:', process.env.NEXT_PUBLIC_SANITY_PROJECT_ID);
+      console.log('Dataset:', process.env.NEXT_PUBLIC_SANITY_DATASET);
+
+      const testResults = await client.fetch(TEST_QUERY);
+      console.log('Test query results:', testResults);
+
+      return testResults && testResults.length > 0;
+    } catch (error) {
+      console.error('Sanity connection test failed:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
+      setIsLoading(true);
+      setError(null);
+
       try {
-        // Fetch posts with additional error checking
+        // Test connection first
+        const connectionTest = await testSanityConnection();
+        if (!connectionTest) {
+          throw new Error('Could not establish connection to Sanity');
+        }
+
+        // Fetch posts with verbose logging
+        console.log('Fetching posts...');
         const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
-        
+        console.log('Raw fetched posts:', fetchedPosts);
+
         if (!fetchedPosts || fetchedPosts.length === 0) {
-          console.warn('No posts found');
+          console.warn('No posts found in Sanity');
           setPosts([]);
+          setIsLoading(false);
           return;
         }
-  
+
         const processedPosts = fetchedPosts.map((post) => ({
           ...post,
-          date: post.publishedAt 
+          date: post.publishedAt
             ? new Date(post.publishedAt).toLocaleDateString('es-AR', {
                 day: 'numeric',
                 month: 'long',
@@ -120,39 +159,40 @@ export default function BlogPage() {
           category: post.category || 'Sin categoría',
           image: post.image || null,
         }));
-  
+
+        console.log('Processed posts:', processedPosts);
         setPosts(processedPosts);
-  
-        // Fetch categories
+
+        // Fetch categories with verbose logging
+        console.log('Fetching categories...');
         const fetchedCategories: Category[] = await client.fetch(CATEGORIES_QUERY);
-        
         console.log('Fetched categories:', fetchedCategories);
-        
+
         if (!fetchedCategories || fetchedCategories.length === 0) {
-          console.warn('No categories found');
+          console.warn('No categories found in Sanity');
           setCategories([]);
-          return;
-        }
-  
-        setCategories(fetchedCategories);
-      } catch (error: unknown) {
-        // Comprehensive error handling
-        if (error instanceof Error) {
-          console.error('Detailed Sanity fetch error:', {
-            message: error.message,
-            name: error.name,
-            stack: error.stack,
-          });
         } else {
-          console.error('Unknown error during Sanity data fetch', error);
+          setCategories(fetchedCategories);
         }
-        
-        // Fallback to empty states
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error during data fetch';
+
+        console.error('Detailed error:', {
+          message: errorMessage,
+          error,
+          projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+          dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+        });
+
+        setError(errorMessage);
         setPosts([]);
         setCategories([]);
+      } finally {
+        setIsLoading(false);
       }
     }
-  
+
     fetchData();
   }, []);
 
@@ -187,14 +227,10 @@ export default function BlogPage() {
           safeTags.some((tag) => tag.toLowerCase().includes(safeQuery))
         : true;
 
-      const matchesCategory = selectedCategory
-        ? post.category === selectedCategory
-        : true;
+      const matchesCategory = selectedCategory ? post.category === selectedCategory : true;
 
-      const matchesTags = 
-        selectedTags.length > 0
-          ? selectedTags.every((tag) => safeTags.includes(tag))
-          : true;
+      const matchesTags =
+        selectedTags.length > 0 ? selectedTags.every((tag) => safeTags.includes(tag)) : true;
 
       return matchesSearch && matchesCategory && matchesTags;
     });
@@ -202,17 +238,38 @@ export default function BlogPage() {
 
   // Get all unique tags from posts
   const allTags = useMemo(() => {
-    return [...new Set(posts.flatMap(post => post.tags))];
+    return [...new Set(posts.flatMap((post) => post.tags))];
   }, [posts]);
 
   // Tag toggle handler
   const handleTagToggle = (tag: string) => {
-    setSelectedTags(prevTags => 
-      prevTags.includes(tag)
-        ? prevTags.filter(t => t !== tag)
-        : [...prevTags, tag]
+    setSelectedTags((prevTags) =>
+      prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-lg text-muted-foreground">Cargando posts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="mb-4 text-2xl font-bold text-red-600">Error al cargar los posts</h2>
+          <p className="mb-4 text-muted-foreground">{error}</p>
+          <Button onClick={() => window.location.reload()}>Intentar nuevamente</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen pt-24">
@@ -222,14 +279,12 @@ export default function BlogPage() {
           animate={{ opacity: 1, y: 0 }}
           className="container mx-auto px-4 text-center"
         >
-          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
-            Blog & Recursos
-          </h1>
+          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">Blog & Recursos</h1>
           <div className="mx-auto max-w-3xl">
             <div className="relative mb-4">
-              <input 
-                type="text" 
-                placeholder="Buscar artículos..." 
+              <input
+                type="text"
+                placeholder="Buscar artículos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-full border px-4 py-2 focus:outline-none focus:ring-2"
@@ -252,10 +307,10 @@ export default function BlogPage() {
                     key={title}
                     onClick={() => setSelectedCategory(title)}
                     className={cn(
-                      "flex w-full justify-between rounded-lg px-4 py-2 text-left transition-colors",
-                      selectedCategory === title 
-                        ? "bg-primary text-primary-foreground" 
-                        : "hover:bg-muted"
+                      'flex w-full justify-between rounded-lg px-4 py-2 text-left transition-colors',
+                      selectedCategory === title
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
                     )}
                   >
                     <span>{title}</span>
@@ -263,9 +318,9 @@ export default function BlogPage() {
                   </button>
                 ))}
                 {selectedCategory && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setSelectedCategory(null)}
                     className="mt-2 w-full"
                   >
@@ -282,7 +337,7 @@ export default function BlogPage() {
                 {allTags.map((tag) => (
                   <Button
                     key={tag}
-                    variant={selectedTags.includes(tag) ? "default" : "outline"}
+                    variant={selectedTags.includes(tag) ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleTagToggle(tag)}
                   >
@@ -296,8 +351,8 @@ export default function BlogPage() {
           {/* Blog Posts */}
           <div>
             {filteredPosts.length === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-lg text-muted-foreground mb-4">
+              <div className="py-10 text-center">
+                <p className="mb-4 text-lg text-muted-foreground">
                   No se encontraron artículos que coincidan con tu búsqueda.
                 </p>
                 <div className="flex justify-center space-x-4">
@@ -333,7 +388,7 @@ export default function BlogPage() {
                         <span>{post.date}</span>
                       </div>
                       <h3 className="mb-2 text-xl font-semibold">{post.title}</h3>
-                      <p className="mb-4 text-muted-foreground line-clamp-2">{post.excerpt}</p>
+                      <p className="mb-4 line-clamp-2 text-muted-foreground">{post.excerpt}</p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Tag className="h-4 w-4 text-muted-foreground" />
