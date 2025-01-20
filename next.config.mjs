@@ -1,11 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
-  optimizeFonts: true,
   experimental: {
     optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
-    serverComponentsExternalPackages: ['sharp']
+    serverExternalPackages: ['sharp']
   },
   webpack: (config) => {
     // Reducir tamaño de JavaScript
@@ -34,13 +32,6 @@ const nextConfig = {
     return config;
   },
 
-  // Configuración de rendimiento
-  performance: {
-    hints: 'warning',
-    maxEntrypointSize: 512000,
-    maxAssetSize: 512000
-  },
-
   // Optimizar carga de CSS
   sassOptions: {
     includePaths: ['./src/styles'],
@@ -49,9 +40,6 @@ const nextConfig = {
   // Configuración de imagen
   images: {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 60
   }
 };
 
