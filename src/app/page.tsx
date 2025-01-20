@@ -1,7 +1,7 @@
 'use client';
 
 import { SmoothScroll } from '@/components/smooth-scroll';
-import { ScrollToTop } from '@/components/scroll-to-top'; // Import the ScrollToTop component
+import  ScrollToTop  from '@/components/scroll-to-top'; // Import the ScrollToTop component
 import { motion } from 'framer-motion';
 import {
   Code,
