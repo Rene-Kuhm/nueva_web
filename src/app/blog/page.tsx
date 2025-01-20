@@ -1,429 +1,207 @@
-'use client';
-
 import { motion } from 'framer-motion';
 import { Tag, Clock, User, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
 import { useState, useEffect, useMemo } from 'react';
-import { cn } from '@/lib/utils';
-import { createClient, ClientConfig } from 'next-sanity';
-import { useRouter } from 'next/navigation';
+import { createClient } from 'next-sanity';
 import Image from 'next/image';
+import Link from 'next/link';
 
-// Define Post type for type safety
+// Enhanced type definitions
 interface Post {
+  _id: string;
   title: string;
   excerpt: string;
   content: string;
   category: string;
-  author: string;
-  date: string;
+  author: {
+    name: string;
+    image?: string;
+  };
   publishedAt: string;
   readTime: string;
-  image: string | null;
+  mainImage?: {
+    asset: {
+      url: string;
+    };
+  };
   tags: string[];
-  slug: string;
-}
-
-// Define Category type
-interface Category {
-  _id: string;
-  title: string;
-  description?: string;
-}
-
-interface ExtendedClientConfig extends ClientConfig {
-  withCredentials?: boolean;
-  cors?: {
-    credentials?: string;
+  slug: {
+    current: string;
   };
 }
 
-// Initialize Sanity client with more detailed configuration
+// Sanity client configuration
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
-  apiVersion: '2023-01-01',
-  useCdn: false,
+  apiVersion: '2024-01-01',
+  useCdn: true,
   perspective: 'published',
-  token: process.env.SANITY_API_TOKEN,
-  ...({
-    withCredentials: true, // Añade esta línea
-    cors: {
-      credentials: 'include', // Y esta línea
-    },
-  } as ExtendedClientConfig),
 });
 
-// Simple test query to verify Sanity connection
-const TEST_QUERY = `*[_type == "post"][0...5]{
-  title,
-  _id,
-  _createdAt
-}`;
-
-// Main posts query
-const POSTS_QUERY = `*[_type == "post"] {
-  title,
-  "excerpt": coalesce(description, "Sin descripción"),
-  "content": pt::text(body),
-  "category": categories[0]->title,
-  "author": author->name,
-  publishedAt,
-  "readTime": round(length(pt::text(body)) / 5 / 200) + " min",
-  "image": mainImage.asset->url,
-  "tags": categories[]->title,
-  "slug": slug.current
-}`;
-
-const CATEGORIES_QUERY = `*[_type == "category" && defined(title)] {
-  _id,
-  title,
-  description
-}`;
-
 export default function BlogPage() {
-  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Compute category counts
-  const categoryCounts = useMemo(() => {
-    return posts.reduce(
-      (acc, post) => {
-        const category = post.category || 'Sin categoría';
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-  }, [posts]);
-
-  // Derive sidebar categories
-  const sidebarCategories = useMemo(() => {
-    return categories.length > 0
-      ? categories.map((category) => ({
-          title: category.title,
-          count: categoryCounts[category.title] || 0,
-        }))
-      : Object.entries(categoryCounts).map(([title, count]) => ({
-          title,
-          count,
-        }));
-  }, [categories, categoryCounts]);
-
-  // Test Sanity connection
-  const testSanityConnection = async () => {
-    try {
-      console.log('Testing Sanity connection...');
-      console.log('Project ID:', process.env.NEXT_PUBLIC_SANITY_PROJECT_ID);
-      console.log('Dataset:', process.env.NEXT_PUBLIC_SANITY_DATASET);
-
-      const testResults = await client.fetch(TEST_QUERY);
-      console.log('Test query results:', testResults);
-
-      return testResults && testResults.length > 0;
-    } catch (error) {
-      console.error('Sanity connection test failed:', error);
-      return false;
-    }
-  };
-
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
-      setError(null);
-
+    async function fetchPosts() {
       try {
-        // Test connection first
-        const connectionTest = await testSanityConnection();
-        if (!connectionTest) {
-          throw new Error('Could not establish connection to Sanity');
-        }
+        setIsLoading(true);
+        const postsQuery = `*[_type == "post"] {
+          _id,
+          title,
+          excerpt,
+          "category": category->title,
+          "author": author->{name, image},
+          publishedAt,
+          readTime,
+          "mainImage": mainImage{
+            asset->{url}
+          },
+          tags,
+          "slug": slug.current
+        } | order(publishedAt desc)`;
 
-        // Fetch posts with verbose logging
-        console.log('Fetching posts...');
-        const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
-        console.log('Raw fetched posts:', fetchedPosts);
+        const categoriesQuery = `*[_type == "category"]{title}`;
 
-        if (!fetchedPosts || fetchedPosts.length === 0) {
-          console.warn('No posts found in Sanity');
-          setPosts([]);
-          setIsLoading(false);
-          return;
-        }
+        const [fetchedPosts, fetchedCategories] = await Promise.all([
+          client.fetch<Post[]>(postsQuery),
+          client.fetch<{title: string}[]>(categoriesQuery)
+        ]);
 
-        const processedPosts = fetchedPosts.map((post) => ({
-          ...post,
-          date: post.publishedAt
-            ? new Date(post.publishedAt).toLocaleDateString('es-AR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })
-            : 'Fecha no disponible',
-          tags: post.tags || [],
-          category: post.category || 'Sin categoría',
-          image: post.image || null,
-        }));
-
-        console.log('Processed posts:', processedPosts);
-        setPosts(processedPosts);
-
-        // Fetch categories with verbose logging
-        console.log('Fetching categories...');
-        const fetchedCategories: Category[] = await client.fetch(CATEGORIES_QUERY);
-        console.log('Fetched categories:', fetchedCategories);
-
-        if (!fetchedCategories || fetchedCategories.length === 0) {
-          console.warn('No categories found in Sanity');
-          setCategories([]);
-        } else {
-          setCategories(fetchedCategories);
-        }
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error during data fetch';
-
-        console.error('Detailed error:', {
-          message: errorMessage,
-          error,
-          projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-          dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
-        });
-
-        setError(errorMessage);
-        setPosts([]);
-        setCategories([]);
-      } finally {
+        setPosts(fetchedPosts);
+        setCategories(fetchedCategories.map(cat => cat.title));
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching blog posts:', err);
+        setError('Failed to load blog posts. Please try again later.');
         setIsLoading(false);
       }
     }
 
-    fetchData();
+    fetchPosts();
   }, []);
 
-  // Debounce search query
-  useEffect(() => {
-    const timerId = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(timerId);
-  }, [searchQuery]);
-
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory(null);
-    setSelectedTags([]);
-  };
-
-  // Filtered posts logic
   const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      const safeTitle = post.title?.toLowerCase() || '';
-      const safeContent = post.content?.toLowerCase() || '';
-      const safeExcerpt = post.excerpt?.toLowerCase() || '';
-      const safeTags = post.tags || [];
-      const safeQuery = debouncedQuery.toLowerCase();
-
-      const matchesSearch = safeQuery
-        ? safeTitle.includes(safeQuery) ||
-          safeContent.includes(safeQuery) ||
-          safeExcerpt.includes(safeQuery) ||
-          safeTags.some((tag) => tag.toLowerCase().includes(safeQuery))
-        : true;
-
-      const matchesCategory = selectedCategory ? post.category === selectedCategory : true;
-
-      const matchesTags =
-        selectedTags.length > 0 ? selectedTags.every((tag) => safeTags.includes(tag)) : true;
-
-      return matchesSearch && matchesCategory && matchesTags;
-    });
-  }, [posts, debouncedQuery, selectedCategory, selectedTags]);
-
-  // Get all unique tags from posts
-  const allTags = useMemo(() => {
-    return [...new Set(posts.flatMap((post) => post.tags))];
-  }, [posts]);
-
-  // Tag toggle handler
-  const handleTagToggle = (tag: string) => {
-    setSelectedTags((prevTags) =>
-      prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
-    );
-  };
+    return selectedCategory
+      ? posts.filter(post => post.category === selectedCategory)
+      : posts;
+  }, [posts, selectedCategory]);
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-lg text-muted-foreground">Cargando posts...</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-blue-500"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="mb-4 text-2xl font-bold text-red-600">Error al cargar los posts</h2>
-          <p className="mb-4 text-muted-foreground">{error}</p>
-          <Button onClick={() => window.location.reload()}>Intentar nuevamente</Button>
-        </div>
+      <div className="text-center text-red-500 py-12">
+        <p>{error}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Retry
+        </Button>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen pt-24">
-      <section className="relative overflow-hidden bg-muted/50 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="container mx-auto px-4 text-center"
+    <div className="container mx-auto px-4 py-8">
+      <motion.h1
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-4xl font-bold text-center mb-8 text-gray-800 dark:text-white"
+      >
+        Professional Blog
+      </motion.h1>
+
+      {/* Category Filter */}
+      <div className="flex flex-wrap justify-center gap-4 mb-8">
+        <Button
+          variant={selectedCategory === null ? 'default' : 'outline'}
+          onClick={() => setSelectedCategory(null)}
         >
-          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">Blog & Recursos</h1>
-          <div className="mx-auto max-w-3xl">
-            <div className="relative mb-4">
-              <input
-                type="text"
-                placeholder="Buscar artículos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-full border px-4 py-2 focus:outline-none focus:ring-2"
-              />
-            </div>
-          </div>
-        </motion.div>
-      </section>
+          All Posts
+        </Button>
+        {categories.map((category) => (
+          <Button
+            key={category}
+            variant={selectedCategory === category ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory(category)}
+          >
+            {category}
+          </Button>
+        ))}
+      </div>
 
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid gap-12 md:grid-cols-[300px_1fr]">
-          {/* Sidebar */}
-          <aside className="space-y-6">
-            {/* Categories */}
-            <div>
-              <h3 className="mb-4 text-lg font-semibold">Categorías</h3>
-              <div className="space-y-2">
-                {sidebarCategories.map(({ title, count }) => (
-                  <button
-                    key={title}
-                    onClick={() => setSelectedCategory(title)}
-                    className={cn(
-                      'flex w-full justify-between rounded-lg px-4 py-2 text-left transition-colors',
-                      selectedCategory === title
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-muted'
-                    )}
-                  >
-                    <span>{title}</span>
-                    <span className="text-sm opacity-70">({count})</span>
-                  </button>
-                ))}
-                {selectedCategory && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedCategory(null)}
-                    className="mt-2 w-full"
-                  >
-                    Limpiar filtro
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <h3 className="mb-4 text-lg font-semibold">Etiquetas</h3>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map((tag) => (
-                  <Button
-                    key={tag}
-                    variant={selectedTags.includes(tag) ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleTagToggle(tag)}
-                  >
-                    {tag}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </aside>
-
-          {/* Blog Posts */}
-          <div>
-            {filteredPosts.length === 0 ? (
-              <div className="py-10 text-center">
-                <p className="mb-4 text-lg text-muted-foreground">
-                  No se encontraron artículos que coincidan con tu búsqueda.
+      {filteredPosts.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          No posts found in this category.
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredPosts.map((post) => (
+            <motion.div
+              key={post._id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+            >
+              {post.mainImage?.asset?.url && (
+                <div className="relative h-48 w-full">
+                  <Image
+                    src={post.mainImage.asset.url}
+                    alt={post.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
+              )}
+              <div className="p-6">
+                <div className="flex items-center mb-2 text-sm text-gray-500">
+                  <User className="mr-2 h-4 w-4" />
+                  {post.author.name}
+                  <Clock className="ml-4 mr-2 h-4 w-4" />
+                  {post.readTime}
+                </div>
+                <h2 className="text-xl font-semibold mb-2 text-gray-800 dark:text-white">
+                  {post.title}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  {post.excerpt}
                 </p>
-                <div className="flex justify-center space-x-4">
-                  <Button onClick={clearFilters} variant="outline">
-                    Limpiar filtros
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <div className="flex space-x-2">
+                    {post.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                      >
+                        <Tag className="mr-1 h-3 w-3" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <Link href={`/blog/${post.slug.current}`}>
+                    <Button variant="outline">
+                      Read More
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            ) : (
-              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {filteredPosts.map((post) => (
-                  <motion.div
-                    key={post.slug}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="group relative overflow-hidden rounded-lg border bg-background shadow-sm"
-                  >
-                    {post.image && (
-                      <Image
-                        src={post.image}
-                        alt={post.title}
-                        width={400}
-                        height={250}
-                        className="h-48 w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    )}
-                    <div className="p-4">
-                      <div className="mb-2 flex items-center space-x-2 text-sm text-muted-foreground">
-                        <User className="h-4 w-4" />
-                        <span>{post.author}</span>
-                        <Clock className="h-4 w-4" />
-                        <span>{post.date}</span>
-                      </div>
-                      <h3 className="mb-2 text-xl font-semibold">{post.title}</h3>
-                      <p className="mb-4 line-clamp-2 text-muted-foreground">{post.excerpt}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Tag className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">{post.category}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => router.push(`/blog/${post.slug}`)}
-                        >
-                          Leer más
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
+            </motion.div>
+          ))}
         </div>
-      </div>
-    </main>
+      )}
+    </div>
   );
 }
