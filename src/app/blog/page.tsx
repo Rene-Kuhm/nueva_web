@@ -1,17 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from 'next-sanity';
 import Image from 'next/image';
 import { Clock, User } from 'lucide-react';
-
-// Sanity client configuration
-const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
-  apiVersion: '2024-01-01',
-  useCdn: true,
-});
+import { sanityFetch } from '../../../sanity/lib/sanityClient';
 
 // Simple Post interface
 interface Post {
@@ -26,7 +18,7 @@ interface Post {
 // Simple query to fetch posts
 const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
   title,
-  "description": excerpt,
+  "description": coalesce(excerpt, "No description available"),
   "author": author->name,
   publishedAt,
   "image": mainImage.asset->url,
@@ -41,12 +33,12 @@ export default function BlogPage() {
   useEffect(() => {
     async function fetchPosts() {
       try {
-        const fetchedPosts = await client.fetch<Post[]>(POSTS_QUERY);
+        const fetchedPosts = await sanityFetch<Post[]>(POSTS_QUERY);
         setPosts(fetchedPosts);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching posts:', err);
-        setError('Failed to load blog posts');
+        console.error('Detailed error fetching posts:', err);
+        setError(`Failed to load blog posts: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setLoading(false);
       }
     }
