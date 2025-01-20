@@ -1,6 +1,4 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import { Suspense } from 'react';
 import Image from 'next/image';
 import { Clock, User, AlertTriangle } from 'lucide-react';
 import { sanityFetch } from '../../../sanity/lib/sanityClient';
@@ -25,56 +23,20 @@ const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
   "tags": categories[]->title
 }[0...10]`;
 
-export default function BlogPage() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchPosts() {
-      try {
-        // Validate configuration
-        const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-        const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
-
-        if (!projectId || !dataset) {
-          throw new Error('Sanity configuration is incomplete');
-        }
-
-        // Fetch posts
-        const fetchedPosts = await sanityFetch<Post[]>(POSTS_QUERY);
-        
-        // Validate fetched posts
-        if (!fetchedPosts || fetchedPosts.length === 0) {
-          setError('No blog posts found. Check your Sanity dataset.');
-        } else {
-          setPosts(fetchedPosts);
-        }
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching posts:', err);
-        setError(
-          err instanceof Error 
-            ? `Failed to load blog posts: ${err.message}` 
-            : 'Unknown error occurred while fetching blog posts'
-        );
-        setLoading(false);
-      }
-    }
-
-    fetchPosts();
-  }, []);
-
-  if (loading) return (
+// Loading component
+function BlogPostsSkeleton() {
+  return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="text-center">
         <p className="text-xl animate-pulse">Loading blog posts...</p>
       </div>
     </div>
   );
+}
 
-  if (error) return (
+// Error component
+function BlogErrorDisplay({ error }: { error: string }) {
+  return (
     <div className="text-center text-red-500 py-12 space-y-6 max-w-2xl mx-auto">
       <div className="bg-red-50 border border-red-200 rounded-lg p-6 shadow-md">
         <div className="flex justify-center mb-4">
@@ -100,40 +62,83 @@ export default function BlogPage() {
       </div>
     </div>
   );
+}
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold text-center mb-8">Blog Posts</h1>
+// Async Server Component for fetching blog posts
+async function BlogPosts() {
+  try {
+    // Validate configuration
+    const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+    const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
+
+    if (!projectId || !dataset) {
+      return <BlogErrorDisplay error="Sanity configuration is incomplete" />;
+    }
+
+    // Fetch posts
+    try {
+      const posts = await sanityFetch<Post[]>(POSTS_QUERY);
       
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {posts.map((post, index) => (
-          <div 
-            key={index} 
-            className="border rounded-lg overflow-hidden shadow-lg"
-          >
-            {post.image && (
-              <div className="relative w-full h-48">
-                <Image 
-                  src={post.image} 
-                  alt={post.title} 
-                  fill 
-                  className="object-cover"
-                />
+      // Validate fetched posts
+      if (!posts || posts.length === 0) {
+        return <BlogErrorDisplay error="No blog posts found. Check your Sanity dataset." />;
+      }
+
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <h1 className="text-4xl font-bold text-center mb-8">Blog Posts</h1>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.map((post, index) => (
+              <div 
+                key={index} 
+                className="border rounded-lg overflow-hidden shadow-lg"
+              >
+                {post.image && (
+                  <div className="relative w-full h-48">
+                    <Image 
+                      src={post.image} 
+                      alt={post.title} 
+                      fill 
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
+                  <p className="text-gray-600 mb-4">{post.description}</p>
+                  <div className="flex items-center text-sm text-gray-500">
+                    <User className="mr-2" size={16} />
+                    {post.author}
+                    <Clock className="ml-4 mr-2" size={16} />
+                    {new Date(post.publishedAt).toLocaleDateString()}
+                  </div>
+                </div>
               </div>
-            )}
-            <div className="p-4">
-              <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
-              <p className="text-gray-600 mb-4">{post.description}</p>
-              <div className="flex items-center text-sm text-gray-500">
-                <User className="mr-2" size={16} />
-                {post.author}
-                <Clock className="ml-4 mr-2" size={16} />
-                {new Date(post.publishedAt).toLocaleDateString()}
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      );
+    } catch (fetchError) {
+      console.error('Blog Posts Fetch Error:', fetchError);
+      return <BlogErrorDisplay 
+        error={fetchError instanceof Error 
+          ? `Failed to load blog posts: ${fetchError.message}` 
+          : 'Unknown error occurred while fetching blog posts'
+        } 
+      />;
+    }
+  } catch (err) {
+    console.error('Unexpected Blog Posts Error:', err);
+    return <BlogErrorDisplay error="An unexpected error occurred" />;
+  }
+}
+
+// Main Page Component
+export default function BlogPage() {
+  return (
+    <Suspense fallback={<BlogPostsSkeleton />}>
+      <BlogPosts />
+    </Suspense>
   );
 }
