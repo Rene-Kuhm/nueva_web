@@ -133,8 +133,8 @@ export default function BlogPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Button 
-              size="icon" 
+            <Button
+              size="icon"
               className="h-12 w-12"
               onClick={clearFilters}
               variant={searchQuery || selectedCategory || selectedTags.length > 0 ? "destructive" : "default"}
@@ -206,8 +206,8 @@ export default function BlogPage() {
                     <span>{category.name}</span>
                     <span className={cn(
                       "rounded-full px-2 py-0.5 text-xs",
-                      selectedCategory === category.name 
-                        ? "bg-primary/20" 
+                      selectedCategory === category.name
+                        ? "bg-primary/20"
                         : "bg-primary/10 text-primary"
                     )}>
                       {category.count}
