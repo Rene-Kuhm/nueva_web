@@ -30,15 +30,50 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Validate Sanity configuration
+  const validateSanityConfig = () => {
+    const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || process.env.SANITY_PROJECT_ID;
+    const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || process.env.SANITY_DATASET;
+
+    if (!projectId) {
+      return 'Sanity Project ID is not configured';
+    }
+
+    if (!dataset) {
+      return 'Sanity Dataset is not configured';
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     async function fetchPosts() {
+      // Check configuration before fetching
+      const configError = validateSanityConfig();
+      if (configError) {
+        setError(configError);
+        setLoading(false);
+        return;
+      }
+
       try {
         const fetchedPosts = await sanityFetch<Post[]>(POSTS_QUERY);
-        setPosts(fetchedPosts);
+        
+        // Additional validation of fetched posts
+        if (!fetchedPosts || fetchedPosts.length === 0) {
+          setError('No blog posts found. Check your Sanity dataset.');
+        } else {
+          setPosts(fetchedPosts);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error('Detailed error fetching posts:', err);
-        setError(`Failed to load blog posts: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setError(
+          err instanceof Error 
+            ? `Failed to load blog posts: ${err.message}` 
+            : 'Unknown error occurred while fetching blog posts'
+        );
         setLoading(false);
       }
     }
@@ -53,8 +88,17 @@ export default function BlogPage() {
   );
 
   if (error) return (
-    <div className="text-center text-red-500 py-12">
-      <p>{error}</p>
+    <div className="text-center text-red-500 py-12 space-y-4">
+      <p className="text-2xl">{error}</p>
+      <div className="bg-gray-100 p-4 rounded-lg inline-block">
+        <h3 className="font-bold mb-2">Troubleshooting Tips:</h3>
+        <ul className="text-left list-disc list-inside">
+          <li>Check your Sanity project configuration</li>
+          <li>Verify environment variables</li>
+          <li>Ensure blog posts exist in your dataset</li>
+          <li>Check network connection</li>
+        </ul>
+      </div>
     </div>
   );
 
