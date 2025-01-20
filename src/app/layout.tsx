@@ -3,9 +3,9 @@
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { baseMetadata } from './metadata';
-import { Navbar } from '@/components/navbar';
+import  Navbar  from '../components/navbar';
 import { Footer } from '@/components/footer';
-import { ScrollToTop } from '@/components/scroll-to-top';
+import  ScrollToTop  from '../components/scroll-to-top';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { SEOService } from '@/lib/seo';
 import { optimizeWebVitals } from '@/lib/performance';
@@ -17,10 +17,10 @@ const inter = Inter({
   weight: ['400', '500', '600', '700']
 });
 
-export default function RootLayout({ 
-  children 
-}: { 
-  children: React.ReactNode 
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode
 }) {
   // Ejecutar optimizaciones de rendimiento al montar
   if (typeof window !== 'undefined') {
@@ -28,24 +28,24 @@ export default function RootLayout({
   }
 
   // Convertir keywords a string de manera segura
-  const keywords = Array.isArray(baseMetadata.keywords) 
-    ? baseMetadata.keywords.join(', ') 
+  const keywords = Array.isArray(baseMetadata.keywords)
+    ? baseMetadata.keywords.join(', ')
     : baseMetadata.keywords || '';
 
   return (
-    <html 
-      lang="es" 
+    <html
+      lang="es"
       suppressHydrationWarning
       className={`${inter.className} scroll-smooth`}
-      style={{ 
+      style={{
         colorScheme: 'light',
-        fontFamily: inter.style.fontFamily 
+        fontFamily: inter.style.fontFamily
       }}
     >
       <head>
         {/* Precargar recursos críticos */}
         <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        
+
         {/* Definición de fuente local */}
         <style jsx global>{`
           @font-face {
@@ -56,17 +56,17 @@ export default function RootLayout({
             src: url('/fonts/inter.woff2') format('woff2');
           }
         `}</style>
-        
+
         {/* Metadatos críticos */}
         <meta charSet="utf-8" />
         <title>{baseMetadata.title as string}</title>
         <meta name="description" content={baseMetadata.description as string} />
         <meta name="keywords" content={keywords} />
-        <meta 
-          name="viewport" 
-          content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" 
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
         />
-        
+
         {/* Optimización de recursos */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -92,7 +92,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body 
+      <body
         className="min-h-screen bg-background text-foreground flex flex-col scroll-smooth"
         aria-label="Contenido principal de KuhmDev"
       >
