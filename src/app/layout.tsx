@@ -2,7 +2,7 @@
 
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
-import { baseMetadata } from '../metadata';
+import { baseMetadata } from './metadata';
 import  Navbar  from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import  ScrollToTop  from '@/components/scroll-to-top';
