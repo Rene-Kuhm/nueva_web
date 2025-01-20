@@ -3,9 +3,9 @@
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { baseMetadata } from './metadata';
-import  Navbar  from '@/components/navbar';
+import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
-import  ScrollToTop  from '@/components/scroll-to-top';
+import ScrollToTop from '@/components/scroll-to-top';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { SEOService } from '@/lib/seo';
 import { optimizeWebVitals } from '@/lib/performance';
@@ -14,14 +14,10 @@ import '@/styles/globals.css';
 // Configuración de fuente optimizada
 const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700']
+  weight: ['400', '500', '600', '700'],
 });
 
-export default function RootLayout({
-  children
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Ejecutar optimizaciones de rendimiento al montar
   if (typeof window !== 'undefined') {
     optimizeWebVitals();
@@ -39,12 +35,18 @@ export default function RootLayout({
       className={`${inter.className} scroll-smooth`}
       style={{
         colorScheme: 'light',
-        fontFamily: inter.style.fontFamily
+        fontFamily: inter.style.fontFamily,
       }}
     >
       <head>
         {/* Precargar recursos críticos */}
-        <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link
+          rel="preload"
+          href="/fonts/inter.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
 
         {/* Definición de fuente local */}
         <style jsx global>{`
@@ -104,14 +106,12 @@ export default function RootLayout({
         >
           <ErrorBoundary>
             <Navbar />
-            <main className="flex-grow">
-              {children}
-            </main>
+            <main className="flex-grow">{children}</main>
             <Footer />
             <ScrollToTop />
           </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
