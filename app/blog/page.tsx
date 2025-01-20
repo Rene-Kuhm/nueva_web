@@ -1,5 +1,22 @@
 import { client } from '../../sanity/lib/client'
-import { Post } from '@/types/post'
+
+interface Post {
+  _id: string;
+  title: string;
+  slug: { current: string };
+  mainImage: {
+    asset: {
+      url: string;
+    };
+  };
+  publishedAt: string;
+  author: {
+    name: string;
+  };
+  categories: Array<{
+    title: string;
+  }>;
+}
 
 async function getPosts(): Promise<Post[]> {
   const query = `

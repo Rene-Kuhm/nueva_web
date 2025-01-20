@@ -15,7 +15,7 @@
     "incremental": true,
     "downlevelIteration": true,
     "plugins": [{"name": "next"}],
-    "paths": {"@/*": ["./*"]},
+    "paths": {"@/*": ["./src/*"]},
     "types": ["node", "react", "react-dom", "next"]
   },
   "include": [
