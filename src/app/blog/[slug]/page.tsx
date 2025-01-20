@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 
 // Interfaz para el post detallado
-
 interface SanityBlock {
   _type: 'block';
   children: Array<{
@@ -91,13 +90,10 @@ function getPostQuery(slug: string) {
   }`;
 }
 
-type PageProps = {
-  params: { slug: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
-};
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
+export async function generateMetadata(
+  props: { params: { slug: string } }
+): Promise<Metadata> {
+  const post = await sanityFetch<PostDetail>(getPostQuery(props.params.slug));
   
   return {
     title: post?.title || 'Blog Post',
@@ -110,9 +106,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function BlogPostDetail({ params }: PageProps) {
+export default async function BlogPostDetail(props: { params: { slug: string } }) {
   try {
-    const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
+    const post = await sanityFetch<PostDetail>(getPostQuery(props.params.slug));
 
     if (!post) {
       return (
