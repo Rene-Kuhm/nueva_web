@@ -36,13 +36,15 @@ const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   apiVersion: '2023-01-01',
-  useCdn: true,
+  useCdn: false, // Disable CDN to avoid caching issues
+  perspective: 'published',
+  token: process.env.SANITY_API_TOKEN, // Optional: add API token if available
 });
 
-const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
+const POSTS_QUERY = `*[_type == "post" && defined(slug)] | order(publishedAt desc) {
   title,
-  "excerpt": description,
-  content,
+  "excerpt": coalesce(description, ""),
+  "content": pt::text(body),
   "category": categories[0]->title,
   "author": author->name,
   publishedAt,
@@ -52,7 +54,7 @@ const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
   "slug": slug.current
 }`;
 
-const CATEGORIES_QUERY = `*[_type == "category"] {
+const CATEGORIES_QUERY = `*[_type == "category" && defined(title)] {
   _id,
   title,
   description
@@ -71,7 +73,7 @@ export default function BlogPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch posts with error checking
+        // Fetch posts with additional error checking
         const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
 
         if (!fetchedPosts || fetchedPosts.length === 0) {
@@ -89,15 +91,15 @@ export default function BlogPage() {
                 year: 'numeric',
               })
             : 'Fecha no disponible',
-          // Ensure tags is always an array
           tags: post.tags || [],
-          // Provide a default category if none exists
           category: post.category || 'Sin categoría',
+          // Ensure image is a valid URL or null
+          image: post.image || null,
         }));
 
         setPosts(processedPosts);
 
-        // Fetch categories with error checking
+        // Fetch categories
         const fetchedCategories: Category[] = await client.fetch(CATEGORIES_QUERY);
 
         if (!fetchedCategories || fetchedCategories.length === 0) {
@@ -108,17 +110,18 @@ export default function BlogPage() {
 
         setCategories(fetchedCategories);
       } catch (error: unknown) {
-        // Type guard to check if error is an Error object
+        // Comprehensive error handling
         if (error instanceof Error) {
-          console.error('Error fetching blog data:', {
+          console.error('Detailed Sanity fetch error:', {
             message: error.message,
+            name: error.name,
             stack: error.stack,
           });
         } else {
-          console.error('An unknown error occurred while fetching blog data', error);
+          console.error('Unknown error during Sanity data fetch', error);
         }
 
-        // Set empty states to prevent rendering errors
+        // Fallback to empty states
         setPosts([]);
         setCategories([]);
       }
