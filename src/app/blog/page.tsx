@@ -1,16 +1,29 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Tag, Clock, User, ArrowRight, X } from 'lucide-react';
+import { Search, Tag, Clock, User, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { createClient } from 'next-sanity';
+import Image from 'next/image';
+
+// Define Post type for type safety
+interface Post {
+  title: string;
+  excerpt: string;
+  category: string;
+  author: string;
+  publishedAt: string;
+  readTime: string;
+  image?: string;
+  tags: string[];
+}
 
 // Sanity client configuration
 const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   apiVersion: '2023-01-01',
   useCdn: true,
@@ -37,15 +50,15 @@ const categories = [
 ];
 
 export default function BlogPage() {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPosts() {
       try {
-        const fetchedPosts = await client.fetch(POSTS_QUERY);
+        const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
         setPosts(fetchedPosts);
         setLoading(false);
       } catch (error) {
@@ -131,11 +144,15 @@ export default function BlogPage() {
               className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-shadow"
             >
               {post.image && (
-                <img 
-                  src={post.image} 
-                  alt={post.title} 
-                  className="w-full h-48 object-cover"
-                />
+                <div className="relative w-full h-48">
+                  <Image 
+                    src={post.image} 
+                    alt={post.title} 
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
               )}
               <div className="p-6">
                 <div className="flex items-center text-sm text-gray-500 mb-2">
