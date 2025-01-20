@@ -2,8 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
-    serverExternalPackages: ['sharp']
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react']
   },
   webpack: (config) => {
     // Reducir tamaño de JavaScript

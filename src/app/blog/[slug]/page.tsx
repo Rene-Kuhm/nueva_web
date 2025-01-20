@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { sanityFetch } from '../../../../sanity/lib/sanityClient';
 import { Clock, User, Tag, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { Metadata } from 'next';
 
 // Interfaz para el post detallado
 
@@ -53,13 +54,14 @@ function blocksToText(blocks: SanityBlock[]): string {
       }
       return '';
     })
-    .join('\n\n');
+    .filter(Boolean)
+    .join(' ');
 }
 
-// For Image component usage:
-const imageUrl = (url: string) => {
-  return url.startsWith('http') ? url : `https://cdn.sanity.io/${url}`;
-};
+// Función para obtener URL de imagen
+function imageUrl(url: string) {
+  return url ? `${url}?fit=max&w=1200&h=600` : '';
+}
 
 // Consulta para obtener el post por slug
 function getPostQuery(slug: string) {
@@ -67,21 +69,48 @@ function getPostQuery(slug: string) {
     _id,
     title,
     body,
-    "description": coalesce(excerpt, "No description available"),
+    description,
     "author": author->{
       name,
       bio,
-      "image": image.asset->url
+      image {
+        asset->{
+          url
+        }
+      }
     },
     publishedAt,
-    "mainImage": mainImage.asset->url,
-    "categories": categories[]->{title}
+    mainImage {
+      asset->{
+        url
+      }
+    },
+    categories[]->{
+      title
+    }
   }`;
 }
 
+type PageProps = {
+  params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
+  
+  return {
+    title: post?.title || 'Blog Post',
+    description: post?.description || 'Blog post details',
+    openGraph: {
+      title: post?.title || 'Blog Post',
+      description: post?.description || 'Blog post details',
+      images: post?.mainImage?.asset?.url ? [{ url: post.mainImage.asset.url }] : [],
+    },
+  };
+}
 
-export default async function BlogPostDetail({ params }: { params: { slug: string } }) {
+export default async function BlogPostDetail({ params }: PageProps) {
   try {
     const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
