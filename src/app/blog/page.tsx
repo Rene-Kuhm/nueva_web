@@ -1,254 +1,190 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Tag, Clock, User, ArrowRight, Search, X } from 'lucide-react';
+import { Search, Tag, Clock, User, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect, useMemo } from 'react';
-import { client } from '../../../sanity/lib/client';
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { createClient } from 'next-sanity';
 import Image from 'next/image';
-import Link from 'next/link';
 
-// Enhanced type definitions
+// Define Post type for type safety
 interface Post {
-  _id: string;
   title: string;
   excerpt: string;
-  content: string;
   category: string;
-  author: {
-    name: string;
-    image?: string;
-  };
+  author: string;
   publishedAt: string;
   readTime: string;
-  mainImage?: {
-    asset: {
-      url: string;
-    };
-  };
+  image?: string;
   tags: string[];
-  slug: {
-    current: string;
-  };
 }
+
+// Sanity client configuration
+const client = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
+  apiVersion: '2023-01-01',
+  useCdn: true,
+});
+
+// Query to fetch blog posts
+const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
+  title,
+  "excerpt": description,
+  "category": categories[0]->title,
+  "author": author->name,
+  publishedAt,
+  "readTime": round(length(pt::text(body)) / 5 / 200) + " min",
+  "image": mainImage.asset->url,
+  "tags": categories[]->title
+}`;
+
+const categories = [
+  { name: 'Desarrollo Web', count: 12 },
+  { name: 'React', count: 8 },
+  { name: 'TypeScript', count: 6 },
+  { name: 'Next.js', count: 5 },
+  { name: 'UI/UX', count: 4 },
+];
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPosts() {
       try {
-        setIsLoading(true);
-        const postsQuery = `*[_type == "post"] {
-          _id,
-          title,
-          excerpt,
-          "category": category->title,
-          "author": author->{name, image},
-          publishedAt,
-          readTime,
-          "mainImage": mainImage{
-            asset->{url}
-          },
-          tags,
-          "slug": slug.current,
-          content
-        } | order(publishedAt desc)`;
-
-        const categoriesQuery = `*[_type == "category"]{title}`;
-
-        const [fetchedPosts, fetchedCategories] = await Promise.all([
-          client.fetch<Post[]>(postsQuery).catch(() => []),
-          client.fetch<{title: string}[]>(categoriesQuery).catch(() => [])
-        ]);
-
+        const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
         setPosts(fetchedPosts);
-        setCategories(fetchedCategories.map((cat) => cat.title));
-        
-        if (fetchedPosts.length === 0 || fetchedCategories.length === 0) {
-          setError('Unable to fetch blog posts. Please try again later.');
-        }
-        
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error fetching blog posts:', err);
-        setError('Failed to load blog posts. Please check your connection.');
-        setIsLoading(false);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        setLoading(false);
       }
     }
 
     fetchPosts();
   }, []);
 
-  const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      const matchesCategory = !selectedCategory || post.category === selectedCategory;
-      const matchesSearch =
-        !searchQuery ||
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [posts, selectedCategory, searchQuery]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-blue-500 dark:border-blue-300"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12 bg-red-50 dark:bg-red-900 min-h-screen flex flex-col justify-center">
-        <p className="text-red-500 dark:text-red-300 text-xl mb-4">{error}</p>
-        <Button
-          onClick={() => window.location.reload()}
-          className="mx-auto bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-600"
-        >
-          Retry
-        </Button>
-      </div>
-    );
-  }
+  const filteredPosts = posts.filter((post) => {
+    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || post.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <motion.h1
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-5xl font-bold text-center mb-12 text-gray-800 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600"
-      >
-        Professional Insights
-      </motion.h1>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="container mx-auto px-4 py-8"
+    >
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-center">Blog de René Kuhm</h1>
 
-      {/* Search and Category Filter */}
-      <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-12">
-        <div className="relative w-full max-w-md">
-          <Input
-            type="text"
-            placeholder="Search posts by title, content, or tags..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 py-2 w-full border-2 border-blue-200 dark:border-blue-800 rounded-full focus:ring-2 focus:ring-blue-500 dark:bg-gray-800"
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          {searchQuery && (
-            <X
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-600"
+        {/* Search and Filter Section */}
+        <div className="mb-8 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-grow">
+            <Input
+              type="text"
+              placeholder="Buscar artículos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10"
             />
-          )}
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
+          </div>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button
-            variant={selectedCategory === null ? 'default' : 'outline'}
-            onClick={() => setSelectedCategory(null)}
-            className="rounded-full"
-          >
-            All Posts
-          </Button>
-          {categories.map((category) => (
+        {/* Categories */}
+        <div className="flex flex-wrap gap-2 mb-8 justify-center">
+          {categories.map((cat) => (
             <Button
-              key={category}
-              variant={selectedCategory === category ? 'default' : 'outline'}
-              onClick={() => setSelectedCategory(category)}
-              className="rounded-full"
+              key={cat.name}
+              variant={selectedCategory === cat.name ? 'default' : 'outline'}
+              onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+              className={cn(
+                'flex items-center gap-2',
+                selectedCategory === cat.name
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground'
+              )}
             >
-              {category}
+              <Tag size={16} />
+              {cat.name} ({cat.count})
             </Button>
           ))}
         </div>
-      </div>
 
-      {filteredPosts.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-12 text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-lg shadow-md"
-        >
-          <p className="text-2xl mb-4">No posts found</p>
-          <p>Try adjusting your search or category filter</p>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-        >
-          {filteredPosts.map((post) => (
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-8">
+            <p>Cargando artículos...</p>
+          </div>
+        )}
+
+        {/* Posts Grid */}
+        {!loading && filteredPosts.length === 0 && (
+          <div className="text-center py-8">
+            <p>No se encontraron artículos.</p>
+          </div>
+        )}
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPosts.map((post, index) => (
             <motion.div
-              key={post._id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden transform transition-all hover:scale-105 hover:shadow-2xl"
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-shadow"
             >
-              {post.mainImage?.asset?.url && (
-                <div className="relative h-56 w-full group">
+              {post.image && (
+                <div className="relative w-full h-48">
                   <Image
-                    src={post.mainImage.asset.url}
+                    src={post.image}
                     alt={post.title}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-110"
+                    className="object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
               )}
-              <div className="p-6 space-y-4">
-                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                  <User className="mr-2 h-4 w-4" />
-                  {post.author.name}
-                  <Clock className="ml-4 mr-2 h-4 w-4" />
-                  {post.readTime}
+              <div className="p-6">
+                <div className="flex items-center text-sm text-gray-500 mb-2">
+                  <User size={16} className="mr-2" />
+                  {post.author}
+                  <span className="mx-2">•</span>
+                  <Clock size={16} className="mr-2" />
+                  {post.publishedAt}
                 </div>
-                <h2 className="text-2xl font-bold mb-2 text-gray-800 dark:text-white line-clamp-2">
-                  {post.title}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300 line-clamp-3 mb-4">{post.excerpt}</p>
+                <h2 className="text-xl font-semibold mb-3">{post.title}</h2>
+                <p className="text-gray-600 mb-4">{post.excerpt}</p>
                 <div className="flex items-center justify-between">
-                  <div className="flex space-x-2">
-                    {post.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-                      >
-                        <Tag className="mr-1 h-3 w-3" />
+                  <div className="flex gap-2">
+                    {post.tags?.slice(0, 2).map((tag) => (
+                      <span key={tag} className="px-2 py-1 bg-gray-100 text-xs rounded-full">
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <Link href={`/blog/${post.slug.current}`}>
-                    <Button variant="outline" className="rounded-full">
-                      Read More
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <Button variant="ghost" size="sm">
+                    Leer más
+                    <ArrowRight size={16} className="ml-2" />
+                  </Button>
                 </div>
               </div>
             </motion.div>
           ))}
-        </motion.div>
-      )}
-
-      {filteredPosts.length > 0 && (
-        <div className="text-center mt-12">
-          <p className="text-gray-500 dark:text-gray-400">
-            Showing {filteredPosts.length} of {posts.length} posts
-          </p>
         </div>
-      )}
-    </div>
+      </div>
+    </motion.div>
   );
 }
