@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from 'framer-motion';
 import { Tag, Clock, User, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
