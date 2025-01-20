@@ -1,12 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Tag, Clock, User, ArrowRight, X } from 'lucide-react';
+import { Tag, Clock, User, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { createClient, urlFor } from 'next-sanity';
+import { createClient } from 'next-sanity';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -188,8 +188,8 @@ export default function BlogPage() {
                     <span>{category.title}</span>
                     <span className={cn(
                       "rounded-full px-2 py-0.5 text-xs",
-                      selectedCategory === category.title 
-                        ? "bg-primary/20" 
+                      selectedCategory === category.title
+                        ? "bg-primary/20"
                         : "bg-primary/10 text-primary"
                     )}>
                       {categoryCounts[category.title] || 0}
@@ -241,8 +241,8 @@ export default function BlogPage() {
                   <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
                     <div className="aspect-video overflow-hidden bg-muted md:aspect-auto relative">
                       {post.image ? (
-                        <Image 
-                          src={post.image} 
+                        <Image
+                          src={post.image}
                           alt={post.title}
                           fill
                           className="object-cover"
@@ -288,8 +288,8 @@ export default function BlogPage() {
                           </button>
                         ))}
                       </div>
-                      <Button 
-                        variant="link" 
+                      <Button
+                        variant="link"
                         className="group/link p-0"
                         onClick={() => navigateToBlogPost(post.slug)}
                       >
