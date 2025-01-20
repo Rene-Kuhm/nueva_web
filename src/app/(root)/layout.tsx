@@ -2,10 +2,10 @@
 
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
-import { baseMetadata } from './metadata';
-import  Navbar  from '../components/navbar';
+import { baseMetadata } from '../metadata';
+import  Navbar  from '@/components/navbar';
 import { Footer } from '@/components/footer';
-import  ScrollToTop  from '../components/scroll-to-top';
+import  ScrollToTop  from '@/components/scroll-to-top';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { SEOService } from '@/lib/seo';
 import { optimizeWebVitals } from '@/lib/performance';
