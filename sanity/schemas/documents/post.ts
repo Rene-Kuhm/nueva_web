@@ -51,5 +51,27 @@ export default defineType({
       title: 'Contenido',
       type: 'blockContent',
     }),
+    defineField({
+      name: 'published',
+      title: 'Publicado',
+      type: 'boolean',
+      initialValue: false,
+    }),
   ],
+  preview: {
+    select: {
+      title: 'title',
+      autor: 'author.name',
+      media: 'mainImage',
+      published: 'published'
+    },
+    prepare(selection) {
+      const {title, autor, media, published} = selection
+      return {
+        title,
+        subtitle: `por ${autor || 'Sin autor'} ${published ? '(Publicado)' : '(Borrador)'}`,
+        media,
+      }
+    }
+  }
 })
