@@ -71,22 +71,56 @@ export default function BlogPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch posts
+        // Fetch posts with error checking
         const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
-        setPosts(fetchedPosts.map(post => ({
-          ...post,
-          date: new Date(post.publishedAt).toLocaleDateString('es-AR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          }),
-        })));
 
-        // Fetch categories
+        if (!fetchedPosts || fetchedPosts.length === 0) {
+          console.warn('No posts found');
+          setPosts([]);
+          return;
+        }
+
+        const processedPosts = fetchedPosts.map((post) => ({
+          ...post,
+          date: post.publishedAt
+            ? new Date(post.publishedAt).toLocaleDateString('es-AR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })
+            : 'Fecha no disponible',
+          // Ensure tags is always an array
+          tags: post.tags || [],
+          // Provide a default category if none exists
+          category: post.category || 'Sin categoría',
+        }));
+
+        setPosts(processedPosts);
+
+        // Fetch categories with error checking
         const fetchedCategories: Category[] = await client.fetch(CATEGORIES_QUERY);
+
+        if (!fetchedCategories || fetchedCategories.length === 0) {
+          console.warn('No categories found');
+          setCategories([]);
+          return;
+        }
+
         setCategories(fetchedCategories);
-      } catch (error) {
-        console.error('Error fetching data:', error);
+      } catch (error: unknown) {
+        // Type guard to check if error is an Error object
+        if (error instanceof Error) {
+          console.error('Error fetching blog data:', {
+            message: error.message,
+            stack: error.stack,
+          });
+        } else {
+          console.error('An unknown error occurred while fetching blog data', error);
+        }
+
+        // Set empty states to prevent rendering errors
+        setPosts([]);
+        setCategories([]);
       }
     }
 
@@ -104,24 +138,25 @@ export default function BlogPage() {
 
   // Filter posts based on search query, category, and tags
   const filteredPosts = useMemo(() => {
-    return posts.filter((post: Post) => {
-      const matchesSearch = debouncedQuery
-        ? post.title.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-          post.content.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-          post.excerpt.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-          post.tags.some((tag: string) =>
-            tag.toLowerCase().includes(debouncedQuery.toLowerCase())
-          )
+    return posts.filter((post) => {
+      // Ensure all string comparisons are safe
+      const safeTitle = post.title?.toLowerCase() || '';
+      const safeContent = post.content?.toLowerCase() || '';
+      const safeExcerpt = post.excerpt?.toLowerCase() || '';
+      const safeTags = post.tags || [];
+      const safeQuery = debouncedQuery.toLowerCase();
+
+      const matchesSearch = safeQuery
+        ? safeTitle.includes(safeQuery) ||
+          safeContent.includes(safeQuery) ||
+          safeExcerpt.includes(safeQuery) ||
+          safeTags.some((tag) => tag.toLowerCase().includes(safeQuery))
         : true;
 
-      const matchesCategory = selectedCategory
-        ? post.category === selectedCategory
-        : true;
+      const matchesCategory = selectedCategory ? post.category === selectedCategory : true;
 
       const matchesTags =
-        selectedTags.length > 0
-          ? selectedTags.every((tag: string) => post.tags.includes(tag))
-          : true;
+        selectedTags.length > 0 ? selectedTags.every((tag) => safeTags.includes(tag)) : true;
 
       return matchesSearch && matchesCategory && matchesTags;
     });
@@ -134,17 +169,19 @@ export default function BlogPage() {
 
   // Count posts per category
   const categoryCounts = useMemo(() => {
-    return posts.reduce((acc, post) => {
-      acc[post.category] = (acc[post.category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    return posts.reduce(
+      (acc, post) => {
+        const category = post.category || 'Sin categoría';
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
   }, [posts]);
 
   const handleTagToggle = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
 
@@ -177,21 +214,25 @@ export default function BlogPage() {
                 {categories.map((category) => (
                   <button
                     key={category._id}
-                    onClick={() => setSelectedCategory(
-                      selectedCategory === category.title ? null : category.title
-                    )}
+                    onClick={() =>
+                      setSelectedCategory(
+                        selectedCategory === category.title ? null : category.title
+                      )
+                    }
                     className={cn(
-                      "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
-                      selectedCategory === category.title && "bg-primary/10 text-primary"
+                      'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted',
+                      selectedCategory === category.title && 'bg-primary/10 text-primary'
                     )}
                   >
                     <span>{category.title}</span>
-                    <span className={cn(
-                      "rounded-full px-2 py-0.5 text-xs",
-                      selectedCategory === category.title
-                        ? "bg-primary/20"
-                        : "bg-primary/10 text-primary"
-                    )}>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-xs',
+                        selectedCategory === category.title
+                          ? 'bg-primary/20'
+                          : 'bg-primary/10 text-primary'
+                      )}
+                    >
                       {categoryCounts[category.title] || 0}
                     </span>
                   </button>
@@ -213,10 +254,10 @@ export default function BlogPage() {
                     key={tag}
                     onClick={() => handleTagToggle(tag)}
                     className={cn(
-                      "inline-flex items-center space-x-1 rounded-full px-3 py-1 text-sm transition-colors",
+                      'inline-flex items-center space-x-1 rounded-full px-3 py-1 text-sm transition-colors',
                       selectedTags.includes(tag)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-primary/10 text-primary hover:bg-primary/20"
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-primary/10 text-primary hover:bg-primary/20'
                     )}
                   >
                     <Tag className="h-3 w-3" />
@@ -269,19 +310,17 @@ export default function BlogPage() {
                       <h2 className="mb-2 text-2xl font-semibold tracking-tight transition-colors group-hover:text-primary">
                         {post.title}
                       </h2>
-                      <p className="mb-4 line-clamp-2 text-muted-foreground">
-                        {post.excerpt}
-                      </p>
+                      <p className="mb-4 line-clamp-2 text-muted-foreground">{post.excerpt}</p>
                       <div className="mb-4 flex flex-wrap gap-2">
                         {post.tags.map((tag) => (
                           <button
                             key={tag}
                             onClick={() => handleTagToggle(tag)}
                             className={cn(
-                              "rounded-full px-2.5 py-0.5 text-xs",
+                              'rounded-full px-2.5 py-0.5 text-xs',
                               selectedTags.includes(tag)
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-primary/10 text-primary hover:bg-primary/20"
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-primary/10 text-primary hover:bg-primary/20'
                             )}
                           >
                             {tag}
@@ -301,19 +340,11 @@ export default function BlogPage() {
                 </motion.article>
               ))
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
                 <p className="text-lg text-muted-foreground">
                   No se encontraron artículos que coincidan con tu búsqueda.
                 </p>
-                <Button
-                  onClick={clearFilters}
-                  variant="link"
-                  className="mt-4"
-                >
+                <Button onClick={clearFilters} variant="link" className="mt-4">
                   Limpiar filtros
                 </Button>
               </motion.div>
