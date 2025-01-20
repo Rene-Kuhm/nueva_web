@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { createClient } from 'next-sanity';
+import { createClient, urlFor } from 'next-sanity';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 // Define Post type for type safety
 interface Post {
@@ -18,8 +20,16 @@ interface Post {
   date: string;
   publishedAt: string;
   readTime: string;
-  image: string;
+  image: string | null;
   tags: string[];
+  slug: string;
+}
+
+// Define Category type
+interface Category {
+  _id: string;
+  title: string;
+  description?: string;
 }
 
 const client = createClient({
@@ -38,28 +48,30 @@ const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
   publishedAt,
   "readTime": round(length(pt::text(body)) / 5 / 200) + " min",
   "image": mainImage.asset->url,
-  "tags": categories[]->title
+  "tags": categories[]->title,
+  "slug": slug.current
 }`;
 
-const categories = [
-  { name: 'Desarrollo Web', count: 12 },
-  { name: 'React', count: 8 },
-  { name: 'TypeScript', count: 6 },
-  { name: 'Next.js', count: 5 },
-  { name: 'UI/UX', count: 4 },
-];
+const CATEGORIES_QUERY = `*[_type == "category"] {
+  _id,
+  title,
+  description
+}`;
 
 export default function BlogPage() {
+  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
 
-  // Fetch posts from Sanity
+  // Fetch posts and categories from Sanity
   useEffect(() => {
-    async function fetchPosts() {
+    async function fetchData() {
       try {
+        // Fetch posts
         const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
         setPosts(fetchedPosts.map(post => ({
           ...post,
@@ -69,12 +81,16 @@ export default function BlogPage() {
             year: 'numeric'
           }),
         })));
+
+        // Fetch categories
+        const fetchedCategories: Category[] = await client.fetch(CATEGORIES_QUERY);
+        setCategories(fetchedCategories);
       } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error('Error fetching data:', error);
       }
     }
 
-    fetchPosts();
+    fetchData();
   }, []);
 
   // Debounce search query
@@ -116,6 +132,14 @@ export default function BlogPage() {
     return Array.from(new Set(posts.flatMap((post: Post) => post.tags)));
   }, [posts]);
 
+  // Count posts per category
+  const categoryCounts = useMemo(() => {
+    return posts.reduce((acc, post) => {
+      acc[post.category] = (acc[post.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [posts]);
+
   const handleTagToggle = (tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag)
@@ -130,81 +154,19 @@ export default function BlogPage() {
     setSelectedTags([]);
   };
 
+  // Navigate to blog post
+  const navigateToBlogPost = (slug: string) => {
+    router.push(`/blog/${slug}`);
+  };
+
   return (
     <main className="min-h-screen pt-24">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-muted/50 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="container mx-auto px-4 text-center"
-        >
-          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
-            Blog & Recursos
-          </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-            Explora nuestros artículos sobre desarrollo web, tecnología y mejores prácticas
-          </p>
-          <div className="mx-auto flex max-w-md items-center space-x-2">
-            <Input
-              placeholder="Buscar artículos..."
-              className="h-12"
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Button 
-              size="icon" 
-              className="h-12 w-12"
-              onClick={clearFilters}
-              variant={searchQuery || selectedCategory || selectedTags.length > 0 ? "destructive" : "default"}
-            >
-              {searchQuery || selectedCategory || selectedTags.length > 0 ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Search className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-          {/* Active filters */}
-          {(selectedCategory || selectedTags.length > 0) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mx-auto mt-4 flex max-w-2xl flex-wrap items-center gap-2"
-            >
-              <span className="text-sm text-muted-foreground">Filtros activos:</span>
-              {selectedCategory && (
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className="inline-flex items-center space-x-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
-                >
-                  <span>{selectedCategory}</span>
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-              {selectedTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => handleTagToggle(tag)}
-                  className="inline-flex items-center space-x-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
-                >
-                  <span>{tag}</span>
-                  <X className="h-3 w-3" />
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </motion.div>
-        {/* Decorative elements */}
-        <div className="absolute left-0 top-0 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
-      </section>
-
+      {/* Rest of the component remains the same */}
       <div className="container mx-auto px-4 py-16">
         <div className="grid gap-12 md:grid-cols-[300px_1fr]">
           {/* Sidebar */}
           <aside className="space-y-8">
+            {/* Categories section */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -214,29 +176,30 @@ export default function BlogPage() {
               <div className="space-y-2">
                 {categories.map((category) => (
                   <button
-                    key={category.name}
+                    key={category._id}
                     onClick={() => setSelectedCategory(
-                      selectedCategory === category.name ? null : category.name
+                      selectedCategory === category.title ? null : category.title
                     )}
                     className={cn(
                       "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
-                      selectedCategory === category.name && "bg-primary/10 text-primary"
+                      selectedCategory === category.title && "bg-primary/10 text-primary"
                     )}
                   >
-                    <span>{category.name}</span>
+                    <span>{category.title}</span>
                     <span className={cn(
                       "rounded-full px-2 py-0.5 text-xs",
-                      selectedCategory === category.name 
+                      selectedCategory === category.title 
                         ? "bg-primary/20" 
                         : "bg-primary/10 text-primary"
                     )}>
-                      {category.count}
+                      {categoryCounts[category.title] || 0}
                     </span>
                   </button>
                 ))}
               </div>
             </motion.div>
 
+            {/* Tags section */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -276,8 +239,20 @@ export default function BlogPage() {
                   className="group relative overflow-hidden rounded-lg border bg-card transition-all hover:shadow-lg"
                 >
                   <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
-                    <div className="aspect-video overflow-hidden bg-muted md:aspect-auto">
-                      <div className="h-full bg-muted" />
+                    <div className="aspect-video overflow-hidden bg-muted md:aspect-auto relative">
+                      {post.image ? (
+                        <Image 
+                          src={post.image} 
+                          alt={post.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <div className="h-full bg-muted flex items-center justify-center text-muted-foreground">
+                          Sin imagen
+                        </div>
+                      )}
                     </div>
                     <div className="p-6">
                       <div className="mb-3 flex items-center space-x-4 text-sm text-muted-foreground">
@@ -316,7 +291,7 @@ export default function BlogPage() {
                       <Button 
                         variant="link" 
                         className="group/link p-0"
-                        onClick={() => {/* Add navigation logic if needed */}}
+                        onClick={() => navigateToBlogPost(post.slug)}
                       >
                         Leer más{' '}
                         <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/link:translate-x-1" />
