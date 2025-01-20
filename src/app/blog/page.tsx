@@ -1,68 +1,52 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Search, Tag, Clock, User, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
 import { createClient } from 'next-sanity';
 import Image from 'next/image';
+import { Clock, User } from 'lucide-react';
 
-// Define Post type for type safety
+// Sanity client configuration
+const client = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
+  apiVersion: '2024-01-01',
+  useCdn: true,
+});
+
+// Simple Post interface
 interface Post {
   title: string;
-  excerpt: string;
-  category: string;
+  description: string;
   author: string;
   publishedAt: string;
-  readTime: string;
   image?: string;
   tags: string[];
 }
 
-// Sanity client configuration
-const client = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
-  apiVersion: '2023-01-01',
-  useCdn: true,
-});
-
-// Query to fetch blog posts
+// Simple query to fetch posts
 const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
   title,
-  "excerpt": description,
-  "category": categories[0]->title,
+  "description": excerpt,
   "author": author->name,
   publishedAt,
-  "readTime": round(length(pt::text(body)) / 5 / 200) + " min",
   "image": mainImage.asset->url,
   "tags": categories[]->title
-}`;
-
-const categories = [
-  { name: 'Desarrollo Web', count: 12 },
-  { name: 'React', count: 8 },
-  { name: 'TypeScript', count: 6 },
-  { name: 'Next.js', count: 5 },
-  { name: 'UI/UX', count: 4 },
-];
+}[0...10]`;
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPosts() {
       try {
-        const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
+        const fetchedPosts = await client.fetch<Post[]>(POSTS_QUERY);
         setPosts(fetchedPosts);
         setLoading(false);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
+      } catch (err) {
+        console.error('Error fetching posts:', err);
+        setError('Failed to load blog posts');
         setLoading(false);
       }
     }
@@ -70,121 +54,51 @@ export default function BlogPage() {
     fetchPosts();
   }, []);
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || post.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  if (loading) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <p>Loading posts...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="text-center text-red-500 py-12">
+      <p>{error}</p>
+    </div>
+  );
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="container mx-auto px-4 py-8"
-    >
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-center">Blog de René Kuhm</h1>
-
-        {/* Search and Filter Section */}
-        <div className="mb-8 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-grow">
-            <Input
-              type="text"
-              placeholder="Buscar artículos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10"
-            />
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={20}
-            />
-          </div>
-        </div>
-
-        {/* Categories */}
-        <div className="flex flex-wrap gap-2 mb-8 justify-center">
-          {categories.map((cat) => (
-            <Button
-              key={cat.name}
-              variant={selectedCategory === cat.name ? 'default' : 'outline'}
-              onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
-              className={cn(
-                'flex items-center gap-2',
-                selectedCategory === cat.name
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground'
-              )}
-            >
-              <Tag size={16} />
-              {cat.name} ({cat.count})
-            </Button>
-          ))}
-        </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-8">
-            <p>Cargando artículos...</p>
-          </div>
-        )}
-
-        {/* Posts Grid */}
-        {!loading && filteredPosts.length === 0 && (
-          <div className="text-center py-8">
-            <p>No se encontraron artículos.</p>
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPosts.map((post, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-shadow"
-            >
-              {post.image && (
-                <div className="relative w-full h-48">
-                  <Image
-                    src={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </div>
-              )}
-              <div className="p-6">
-                <div className="flex items-center text-sm text-gray-500 mb-2">
-                  <User size={16} className="mr-2" />
-                  {post.author}
-                  <span className="mx-2">•</span>
-                  <Clock size={16} className="mr-2" />
-                  {post.publishedAt}
-                </div>
-                <h2 className="text-xl font-semibold mb-3">{post.title}</h2>
-                <p className="text-gray-600 mb-4">{post.excerpt}</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    {post.tags?.slice(0, 2).map((tag) => (
-                      <span key={tag} className="px-2 py-1 bg-gray-100 text-xs rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Leer más
-                    <ArrowRight size={16} className="ml-2" />
-                  </Button>
-                </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold text-center mb-8">Blog Posts</h1>
+      
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {posts.map((post, index) => (
+          <div 
+            key={index} 
+            className="border rounded-lg overflow-hidden shadow-lg"
+          >
+            {post.image && (
+              <div className="relative w-full h-48">
+                <Image 
+                  src={post.image} 
+                  alt={post.title} 
+                  fill 
+                  className="object-cover"
+                />
               </div>
-            </motion.div>
-          ))}
-        </div>
+            )}
+            <div className="p-4">
+              <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
+              <p className="text-gray-600 mb-4">{post.description}</p>
+              <div className="flex items-center text-sm text-gray-500">
+                <User className="mr-2" size={16} />
+                {post.author}
+                <Clock className="ml-4 mr-2" size={16} />
+                {new Date(post.publishedAt).toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
