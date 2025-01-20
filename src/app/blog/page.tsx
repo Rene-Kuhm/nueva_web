@@ -64,16 +64,21 @@ export default function BlogPage() {
         const categoriesQuery = `*[_type == "category"]{title}`;
 
         const [fetchedPosts, fetchedCategories] = await Promise.all([
-          client.fetch<Post[]>(postsQuery),
-          client.fetch<{ title: string }[]>(categoriesQuery),
+          client.fetch<Post[]>(postsQuery).catch(() => []),
+          client.fetch<{title: string}[]>(categoriesQuery).catch(() => [])
         ]);
 
         setPosts(fetchedPosts);
         setCategories(fetchedCategories.map((cat) => cat.title));
+        
+        if (fetchedPosts.length === 0 || fetchedCategories.length === 0) {
+          setError('Unable to fetch blog posts. Please try again later.');
+        }
+        
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching blog posts:', err);
-        setError('Failed to load blog posts. Please try again later.');
+        setError('Failed to load blog posts. Please check your connection.');
         setIsLoading(false);
       }
     }
