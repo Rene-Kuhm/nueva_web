@@ -15,7 +15,8 @@
   "build": {
     "env": {
       "PYTHON_VERSION": "3.8.18",
-      "NODE_VERSION": "20.18.0"
+      "NODE_VERSION": "20.18.0",
+      "ENABLE_EXPERIMENTAL_COREPACK": "1"
     }
   }
 }
