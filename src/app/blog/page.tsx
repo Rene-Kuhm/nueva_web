@@ -13,11 +13,13 @@ import Image from 'next/image';
 interface Post {
   title: string;
   excerpt: string;
+  content: string;
   category: string;
   author: string;
+  date: string;
   publishedAt: string;
   readTime: string;
-  image?: string;
+  image: string;
   tags: string[];
 }
 
@@ -33,6 +35,7 @@ const client = createClient({
 const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
   title,
   "excerpt": description,
+  content,
   "category": categories[0]->title,
   "author": author->name,
   publishedAt,
@@ -59,7 +62,11 @@ export default function BlogPage() {
     async function fetchPosts() {
       try {
         const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
-        setPosts(fetchedPosts);
+        setPosts(fetchedPosts.map(post => ({
+          ...post,
+          date: post.publishedAt, // Convert publishedAt to date
+          tags: post.tags || [], // Ensure tags is always an array
+        })));
         setLoading(false);
       } catch (error) {
         console.error('Error fetching posts:', error);
@@ -144,12 +151,12 @@ export default function BlogPage() {
               className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-shadow"
             >
               {post.image && (
-                <div className="relative w-full h-48">
+                <div className="relative w-full h-48 overflow-hidden">
                   <Image 
                     src={post.image} 
                     alt={post.title} 
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 hover:scale-110"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
@@ -160,13 +167,13 @@ export default function BlogPage() {
                   {post.author}
                   <span className="mx-2">•</span>
                   <Clock size={16} className="mr-2" />
-                  {post.publishedAt}
+                  {post.date}
                 </div>
                 <h2 className="text-xl font-semibold mb-3">{post.title}</h2>
                 <p className="text-gray-600 mb-4">{post.excerpt}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
-                    {post.tags?.slice(0, 2).map((tag) => (
+                    {post.tags.slice(0, 2).map((tag) => (
                       <span 
                         key={tag} 
                         className="px-2 py-1 bg-gray-100 text-xs rounded-full"
