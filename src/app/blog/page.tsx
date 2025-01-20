@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Clock, User } from 'lucide-react';
+import { Clock, User, AlertTriangle } from 'lucide-react';
 import { sanityFetch } from '../../../sanity/lib/sanityClient';
 
 // Simple Post interface
@@ -35,23 +35,25 @@ export default function BlogPage() {
     const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || process.env.SANITY_PROJECT_ID;
     const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || process.env.SANITY_DATASET;
 
+    const configIssues: string[] = [];
+
     if (!projectId) {
-      return 'Sanity Project ID is not configured';
+      configIssues.push('Sanity Project ID is missing');
     }
 
     if (!dataset) {
-      return 'Sanity Dataset is not configured';
+      configIssues.push('Sanity Dataset is missing');
     }
 
-    return null;
+    return configIssues.length > 0 ? configIssues : null;
   };
 
   useEffect(() => {
     async function fetchPosts() {
       // Check configuration before fetching
-      const configError = validateSanityConfig();
-      if (configError) {
-        setError(configError);
+      const configErrors = validateSanityConfig();
+      if (configErrors) {
+        setError(`Configuration Error: ${configErrors.join(', ')}`);
         setLoading(false);
         return;
       }
@@ -61,7 +63,7 @@ export default function BlogPage() {
         
         // Additional validation of fetched posts
         if (!fetchedPosts || fetchedPosts.length === 0) {
-          setError('No blog posts found. Check your Sanity dataset.');
+          setError('No blog posts found. Verify your Sanity dataset contains published posts.');
         } else {
           setPosts(fetchedPosts);
         }
@@ -83,21 +85,35 @@ export default function BlogPage() {
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-screen">
-      <p>Loading posts...</p>
+      <div className="text-center">
+        <p className="text-xl animate-pulse">Loading blog posts...</p>
+      </div>
     </div>
   );
 
   if (error) return (
-    <div className="text-center text-red-500 py-12 space-y-4">
-      <p className="text-2xl">{error}</p>
-      <div className="bg-gray-100 p-4 rounded-lg inline-block">
-        <h3 className="font-bold mb-2">Troubleshooting Tips:</h3>
-        <ul className="text-left list-disc list-inside">
-          <li>Check your Sanity project configuration</li>
-          <li>Verify environment variables</li>
-          <li>Ensure blog posts exist in your dataset</li>
-          <li>Check network connection</li>
-        </ul>
+    <div className="text-center text-red-500 py-12 space-y-6 max-w-2xl mx-auto">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 shadow-md">
+        <div className="flex justify-center mb-4">
+          <AlertTriangle className="text-red-500" size={48} />
+        </div>
+        <h2 className="text-2xl font-bold mb-4">Blog Loading Error</h2>
+        <p className="text-lg mb-4">{error}</p>
+        
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-left">
+          <h3 className="font-bold mb-2 text-gray-700">Troubleshooting Steps:</h3>
+          <ul className="list-disc list-inside text-gray-600 space-y-2">
+            <li>Verify Sanity project configuration</li>
+            <li>Check environment variables</li>
+            <li>Ensure blog posts exist in your dataset</li>
+            <li>Confirm network connectivity</li>
+            <li>Check Sanity project permissions</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div className="mt-6 text-gray-600">
+        <p>Need help? Contact your site administrator with the error details.</p>
       </div>
     </div>
   );
