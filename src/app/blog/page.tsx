@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { createClient } from 'next-sanity';
+import { createClient, ClientConfig } from 'next-sanity';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -32,6 +32,13 @@ interface Category {
   description?: string;
 }
 
+interface ExtendedClientConfig extends ClientConfig {
+  withCredentials?: boolean;
+  cors?: {
+    credentials?: string;
+  };
+}
+
 // Initialize Sanity client with more detailed configuration
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
@@ -40,6 +47,12 @@ const client = createClient({
   useCdn: false,
   perspective: 'published',
   token: process.env.SANITY_API_TOKEN,
+  ...({
+    withCredentials: true, // Añade esta línea
+    cors: {
+      credentials: 'include', // Y esta línea
+    },
+  } as ExtendedClientConfig),
 });
 
 // Simple test query to verify Sanity connection
