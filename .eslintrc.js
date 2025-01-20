@@ -5,6 +5,6 @@ module.exports = {
     'next/core-web-vitals'
   ],
   rules: {
-    // Reglas personalizadas si es necesario
+    // Custom rules if necessary
   }
 };

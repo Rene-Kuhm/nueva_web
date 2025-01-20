@@ -79,6 +79,8 @@ function getPostQuery(slug: string) {
   }`;
 }
 
+
+
 export default async function BlogPostDetail({ params }: { params: { slug: string } }) {
   try {
     const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
