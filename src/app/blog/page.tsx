@@ -41,9 +41,9 @@ const client = createClient({
   token: process.env.SANITY_API_TOKEN, // Optional: add API token if available
 });
 
-const POSTS_QUERY = `*[_type == "post" && defined(slug)] | order(publishedAt desc) {
+const POSTS_QUERY = `*[_type == "post"] {
   title,
-  "excerpt": coalesce(description, ""),
+  "excerpt": coalesce(description, "Sin descripción"),
   "content": pt::text(body),
   "category": categories[0]->title,
   "author": author->name,
@@ -69,22 +69,47 @@ export default function BlogPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
 
-  // Fetch posts and categories from Sanity
+  // Compute category counts
+  const categoryCounts = useMemo(() => {
+    return posts.reduce((acc, post) => {
+      const category = post.category || 'Sin categoría';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [posts]);
+
+  // Derive sidebar categories from both fetched categories and post categories
+  const sidebarCategories = useMemo(() => {
+    // If Sanity categories are available, use them with counts
+    if (categories.length > 0) {
+      return categories.map(category => ({
+        title: category.title,
+        count: categoryCounts[category.title] || 0
+      }));
+    }
+    
+    // Fallback to generating categories from posts
+    return Object.entries(categoryCounts).map(([title, count]) => ({
+      title,
+      count
+    }));
+  }, [categories, categoryCounts]);
+
   useEffect(() => {
     async function fetchData() {
       try {
         // Fetch posts with additional error checking
         const fetchedPosts: Post[] = await client.fetch(POSTS_QUERY);
-
+        
         if (!fetchedPosts || fetchedPosts.length === 0) {
           console.warn('No posts found');
           setPosts([]);
           return;
         }
-
+  
         const processedPosts = fetchedPosts.map((post) => ({
           ...post,
-          date: post.publishedAt
+          date: post.publishedAt 
             ? new Date(post.publishedAt).toLocaleDateString('es-AR', {
                 day: 'numeric',
                 month: 'long',
@@ -93,21 +118,22 @@ export default function BlogPage() {
             : 'Fecha no disponible',
           tags: post.tags || [],
           category: post.category || 'Sin categoría',
-          // Ensure image is a valid URL or null
           image: post.image || null,
         }));
-
+  
         setPosts(processedPosts);
-
+  
         // Fetch categories
         const fetchedCategories: Category[] = await client.fetch(CATEGORIES_QUERY);
-
+        
+        console.log('Fetched categories:', fetchedCategories);
+        
         if (!fetchedCategories || fetchedCategories.length === 0) {
           console.warn('No categories found');
           setCategories([]);
           return;
         }
-
+  
         setCategories(fetchedCategories);
       } catch (error: unknown) {
         // Comprehensive error handling
@@ -120,29 +146,34 @@ export default function BlogPage() {
         } else {
           console.error('Unknown error during Sanity data fetch', error);
         }
-
+        
         // Fallback to empty states
         setPosts([]);
         setCategories([]);
       }
     }
-
+  
     fetchData();
   }, []);
 
   // Debounce search query
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timerId = setTimeout(() => {
       setDebouncedQuery(searchQuery);
     }, 300);
-
-    return () => clearTimeout(timer);
+    return () => clearTimeout(timerId);
   }, [searchQuery]);
 
-  // Filter posts based on search query, category, and tags
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory(null);
+    setSelectedTags([]);
+  };
+
+  // Filtered posts logic
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
-      // Ensure all string comparisons are safe
       const safeTitle = post.title?.toLowerCase() || '';
       const safeContent = post.content?.toLowerCase() || '';
       const safeExcerpt = post.excerpt?.toLowerCase() || '';
@@ -156,10 +187,14 @@ export default function BlogPage() {
           safeTags.some((tag) => tag.toLowerCase().includes(safeQuery))
         : true;
 
-      const matchesCategory = selectedCategory ? post.category === selectedCategory : true;
+      const matchesCategory = selectedCategory
+        ? post.category === selectedCategory
+        : true;
 
-      const matchesTags =
-        selectedTags.length > 0 ? selectedTags.every((tag) => safeTags.includes(tag)) : true;
+      const matchesTags = 
+        selectedTags.length > 0
+          ? selectedTags.every((tag) => safeTags.includes(tag))
+          : true;
 
       return matchesSearch && matchesCategory && matchesTags;
     });
@@ -167,190 +202,156 @@ export default function BlogPage() {
 
   // Get all unique tags from posts
   const allTags = useMemo(() => {
-    return Array.from(new Set(posts.flatMap((post: Post) => post.tags)));
+    return [...new Set(posts.flatMap(post => post.tags))];
   }, [posts]);
 
-  // Count posts per category
-  const categoryCounts = useMemo(() => {
-    return posts.reduce(
-      (acc, post) => {
-        const category = post.category || 'Sin categoría';
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-  }, [posts]);
-
+  // Tag toggle handler
   const handleTagToggle = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    setSelectedTags(prevTags => 
+      prevTags.includes(tag)
+        ? prevTags.filter(t => t !== tag)
+        : [...prevTags, tag]
     );
-  };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory(null);
-    setSelectedTags([]);
-  };
-
-  // Navigate to blog post
-  const navigateToBlogPost = (slug: string) => {
-    router.push(`/blog/${slug}`);
   };
 
   return (
     <main className="min-h-screen pt-24">
-      {/* Rest of the component remains the same */}
+      <section className="relative overflow-hidden bg-muted/50 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="container mx-auto px-4 text-center"
+        >
+          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl">
+            Blog & Recursos
+          </h1>
+          <div className="mx-auto max-w-3xl">
+            <div className="relative mb-4">
+              <input 
+                type="text" 
+                placeholder="Buscar artículos..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-full border px-4 py-2 focus:outline-none focus:ring-2"
+              />
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
       <div className="container mx-auto px-4 py-16">
         <div className="grid gap-12 md:grid-cols-[300px_1fr]">
           {/* Sidebar */}
-          <aside className="space-y-8">
-            {/* Categories section */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="rounded-lg border bg-card p-6"
-            >
-              <h2 className="mb-4 text-lg font-semibold">Categorías</h2>
+          <aside className="space-y-6">
+            {/* Categories */}
+            <div>
+              <h3 className="mb-4 text-lg font-semibold">Categorías</h3>
               <div className="space-y-2">
-                {categories.map((category) => (
+                {sidebarCategories.map(({ title, count }) => (
                   <button
-                    key={category._id}
-                    onClick={() =>
-                      setSelectedCategory(
-                        selectedCategory === category.title ? null : category.title
-                      )
-                    }
+                    key={title}
+                    onClick={() => setSelectedCategory(title)}
                     className={cn(
-                      'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted',
-                      selectedCategory === category.title && 'bg-primary/10 text-primary'
+                      "flex w-full justify-between rounded-lg px-4 py-2 text-left transition-colors",
+                      selectedCategory === title 
+                        ? "bg-primary text-primary-foreground" 
+                        : "hover:bg-muted"
                     )}
                   >
-                    <span>{category.title}</span>
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-xs',
-                        selectedCategory === category.title
-                          ? 'bg-primary/20'
-                          : 'bg-primary/10 text-primary'
-                      )}
-                    >
-                      {categoryCounts[category.title] || 0}
-                    </span>
+                    <span>{title}</span>
+                    <span className="text-sm opacity-70">({count})</span>
                   </button>
                 ))}
+                {selectedCategory && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setSelectedCategory(null)}
+                    className="mt-2 w-full"
+                  >
+                    Limpiar filtro
+                  </Button>
+                )}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Tags section */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-lg border bg-card p-6"
-            >
-              <h2 className="mb-4 text-lg font-semibold">Tags Populares</h2>
+            {/* Tags */}
+            <div>
+              <h3 className="mb-4 text-lg font-semibold">Etiquetas</h3>
               <div className="flex flex-wrap gap-2">
                 {allTags.map((tag) => (
-                  <button
+                  <Button
                     key={tag}
+                    variant={selectedTags.includes(tag) ? "default" : "outline"}
+                    size="sm"
                     onClick={() => handleTagToggle(tag)}
-                    className={cn(
-                      'inline-flex items-center space-x-1 rounded-full px-3 py-1 text-sm transition-colors',
-                      selectedTags.includes(tag)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-primary/10 text-primary hover:bg-primary/20'
-                    )}
                   >
-                    <Tag className="h-3 w-3" />
-                    <span>{tag}</span>
-                  </button>
+                    {tag}
+                  </Button>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </aside>
 
-          {/* Main Content */}
-          <div className="space-y-8">
-            {filteredPosts.length > 0 ? (
-              filteredPosts.map((post, index) => (
-                <motion.article
-                  key={post.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group relative overflow-hidden rounded-lg border bg-card transition-all hover:shadow-lg"
-                >
-                  <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
-                    <div className="aspect-video overflow-hidden bg-muted md:aspect-auto relative">
-                      {post.image ? (
-                        <Image
-                          src={post.image}
-                          alt={post.title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="h-full bg-muted flex items-center justify-center text-muted-foreground">
-                          Sin imagen
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-6">
-                      <div className="mb-3 flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span className="inline-flex items-center space-x-1">
-                          <User className="h-4 w-4" />
-                          <span>{post.author}</span>
-                        </span>
-                        <span className="inline-flex items-center space-x-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{post.readTime}</span>
-                        </span>
-                        <span>{post.date}</span>
-                      </div>
-                      <h2 className="mb-2 text-2xl font-semibold tracking-tight transition-colors group-hover:text-primary">
-                        {post.title}
-                      </h2>
-                      <p className="mb-4 line-clamp-2 text-muted-foreground">{post.excerpt}</p>
-                      <div className="mb-4 flex flex-wrap gap-2">
-                        {post.tags.map((tag) => (
-                          <button
-                            key={tag}
-                            onClick={() => handleTagToggle(tag)}
-                            className={cn(
-                              'rounded-full px-2.5 py-0.5 text-xs',
-                              selectedTags.includes(tag)
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-primary/10 text-primary hover:bg-primary/20'
-                            )}
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                      <Button
-                        variant="link"
-                        className="group/link p-0"
-                        onClick={() => navigateToBlogPost(post.slug)}
-                      >
-                        Leer más{' '}
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/link:translate-x-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.article>
-              ))
-            ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-                <p className="text-lg text-muted-foreground">
+          {/* Blog Posts */}
+          <div>
+            {filteredPosts.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-lg text-muted-foreground mb-4">
                   No se encontraron artículos que coincidan con tu búsqueda.
                 </p>
-                <Button onClick={clearFilters} variant="link" className="mt-4">
-                  Limpiar filtros
-                </Button>
-              </motion.div>
+                <div className="flex justify-center space-x-4">
+                  <Button onClick={clearFilters} variant="outline">
+                    Limpiar filtros
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {filteredPosts.map((post) => (
+                  <motion.div
+                    key={post.slug}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="group relative overflow-hidden rounded-lg border bg-background shadow-sm"
+                  >
+                    {post.image && (
+                      <Image
+                        src={post.image}
+                        alt={post.title}
+                        width={400}
+                        height={250}
+                        className="h-48 w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    )}
+                    <div className="p-4">
+                      <div className="mb-2 flex items-center space-x-2 text-sm text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span>{post.author}</span>
+                        <Clock className="h-4 w-4" />
+                        <span>{post.date}</span>
+                      </div>
+                      <h3 className="mb-2 text-xl font-semibold">{post.title}</h3>
+                      <p className="mb-4 text-muted-foreground line-clamp-2">{post.excerpt}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Tag className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">{post.category}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/blog/${post.slug}`)}
+                        >
+                          Leer más
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             )}
           </div>
         </div>
