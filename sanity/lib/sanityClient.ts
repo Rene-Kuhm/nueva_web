@@ -2,20 +2,52 @@ import { createClient } from 'next-sanity';
 import imageUrlBuilder from '@sanity/image-url';
 import { SanityImageSource } from '@sanity/image-url/lib/types/types';
 
-// Comprehensive environment variable logging
-const logEnvConfig = () => {
+// Comprehensive environment and network diagnostics
+const performNetworkDiagnostics = async () => {
+  console.log('Starting Sanity Network Diagnostics');
+
+  // Log environment variables
   const envVars = {
     NEXT_PUBLIC_SANITY_PROJECT_ID: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
     SANITY_PROJECT_ID: process.env.SANITY_PROJECT_ID,
     NEXT_PUBLIC_SANITY_DATASET: process.env.NEXT_PUBLIC_SANITY_DATASET,
     SANITY_DATASET: process.env.SANITY_DATASET,
-    SANITY_TOKEN: process.env.SANITY_TOKEN ? '***' : 'Not set',
-    SANITY_READ_TOKEN: process.env.SANITY_READ_TOKEN ? '***' : 'Not set',
     NODE_ENV: process.env.NODE_ENV
   };
+  console.log('Environment Variables:', JSON.stringify(envVars, null, 2));
 
-  console.log('Sanity Environment Configuration:', JSON.stringify(envVars, null, 2));
-  return envVars;
+  // Check basic network connectivity
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    await fetch('https://www.google.com', {
+      method: 'HEAD',
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    console.log('Internet Connectivity: Successful');
+  } catch (error) {
+    console.error('Internet Connectivity Test Failed:', error);
+    throw new Error('No internet connection detected');
+  }
+
+  // Validate Sanity project configuration
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || process.env.SANITY_PROJECT_ID;
+  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || process.env.SANITY_DATASET || 'production';
+
+  if (!projectId) {
+    console.error('Sanity Project ID is missing');
+    throw new Error('Sanity Project ID is not configured');
+  }
+
+  console.log('Sanity Project Diagnostics:', {
+    projectId,
+    dataset
+  });
+
+  return { projectId, dataset };
 };
 
 // Get the most appropriate project ID
@@ -41,8 +73,8 @@ const getDataset = () => {
   return dataset;
 };
 
-// Log environment configuration on import
-logEnvConfig();
+// Perform diagnostics on import
+performNetworkDiagnostics().catch(console.error);
 
 export const client = createClient({
   projectId: getProjectId(),
@@ -64,6 +96,9 @@ export async function sanityFetch<T>(
   }
 
   try {
+    // Perform network diagnostics before each fetch
+    await performNetworkDiagnostics();
+
     console.log('Executing Sanity Query:', {
       query,
       params,
@@ -97,8 +132,8 @@ export async function sanityFetch<T>(
 
     // More informative and specific error throwing
     if (error instanceof Error) {
-      if (error.message.includes('Request error')) {
-        throw new Error(`Network Error: Unable to connect to Sanity. Check your internet connection and Sanity project settings.`);
+      if (error.message.includes('fetch failed') || error.message.includes('No internet connection')) {
+        throw new Error(`Network Error: Unable to connect to Sanity. Verify internet connection and project settings.`);
       }
       if (error.message.includes('Unauthorized')) {
         throw new Error(`Authentication Error: Invalid Sanity token or insufficient permissions.`);
