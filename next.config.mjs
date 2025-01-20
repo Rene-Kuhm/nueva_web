@@ -7,10 +7,10 @@ const nextConfig = {
     optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
     serverComponentsExternalPackages: ['sharp']
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // Reducir tamaño de JavaScript
     config.optimization.minimize = true;
-    
+
     // Optimizar carga de módulos
     config.optimization.splitChunks = {
       chunks: 'all',
@@ -33,7 +33,7 @@ const nextConfig = {
 
     return config;
   },
-  
+
   // Configuración de rendimiento
   performance: {
     hints: 'warning',
