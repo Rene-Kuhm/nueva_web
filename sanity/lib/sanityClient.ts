@@ -9,9 +9,9 @@ const performNetworkDiagnostics = async () => {
   // Log environment variables
   const envVars = {
     NEXT_PUBLIC_SANITY_PROJECT_ID: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-    SANITY_PROJECT_ID: process.env.SANITY_PROJECT_ID,
     NEXT_PUBLIC_SANITY_DATASET: process.env.NEXT_PUBLIC_SANITY_DATASET,
-    SANITY_DATASET: process.env.SANITY_DATASET,
+    NEXT_PUBLIC_SANITY_API_VERSION: process.env.NEXT_PUBLIC_SANITY_API_VERSION,
+    NEXT_PUBLIC_SANITY_CDN_URL: process.env.NEXT_PUBLIC_SANITY_CDN_URL,
     NODE_ENV: process.env.NODE_ENV
   };
   console.log('Environment Variables:', JSON.stringify(envVars, null, 2));
@@ -34,12 +34,17 @@ const performNetworkDiagnostics = async () => {
   }
 
   // Validate Sanity project configuration
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || process.env.SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || process.env.SANITY_DATASET || 'production';
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
 
   if (!projectId) {
     console.error('Sanity Project ID is missing');
     throw new Error('Sanity Project ID is not configured');
+  }
+
+  if (!dataset) {
+    console.error('Sanity Dataset is missing');
+    throw new Error('Sanity Dataset is not configured');
   }
 
   console.log('Sanity Project Diagnostics:', {
@@ -52,8 +57,7 @@ const performNetworkDiagnostics = async () => {
 
 // Get the most appropriate project ID
 const getProjectId = () => {
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 
-                    process.env.SANITY_PROJECT_ID;
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   
   if (!projectId) {
     console.error('No Sanity Project ID found in environment variables');
@@ -65,9 +69,7 @@ const getProjectId = () => {
 
 // Get the most appropriate dataset
 const getDataset = () => {
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 
-                  process.env.SANITY_DATASET || 
-                  'production';
+  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 'production';
   
   console.log('Using Sanity Dataset:', dataset);
   return dataset;
@@ -79,9 +81,9 @@ performNetworkDiagnostics().catch(console.error);
 export const client = createClient({
   projectId: getProjectId(),
   dataset: getDataset(),
-  apiVersion: '2024-01-01', 
+  apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION || '2024-01-01', 
   useCdn: true,
-  token: process.env.SANITY_TOKEN || process.env.SANITY_READ_TOKEN,
+  token: process.env.SANITY_API_TOKEN,
   perspective: 'published'
 });
 
