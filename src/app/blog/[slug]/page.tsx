@@ -91,12 +91,11 @@ function getPostQuery(slug: string) {
 }
 
 // Actualiza los tipos para Next.js 13+
-type Props = {
-  params: { slug: string }
-  searchParams: { [key: string]: string | string[] | undefined }
+interface Params {
+  slug: string;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
   return {
@@ -110,7 +109,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function BlogPostDetail({ params }: Props) {
+export default async function BlogPostDetail({ params }: { params: Params }) {
   try {
     const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
