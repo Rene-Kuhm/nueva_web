@@ -2,7 +2,6 @@ import Image from 'next/image';
 import { sanityFetch } from '../../../../sanity/lib/sanityClient';
 import { Clock, User, Tag, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Metadata } from 'next';
 
 // Interfaz para el post detallado
 interface SanityBlock {
@@ -90,18 +89,11 @@ function getPostQuery(slug: string) {
   }`;
 }
 
-// Actualiza los tipos para Next.js 13+
-interface Params {
-  slug: string;
-}
-
-interface PageProps {
-  params: Params;
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: { params: { slug: string } }
+): Promise<any> {
   const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
-
+  
   return {
     title: post?.title || 'Blog Post',
     description: post?.description || 'Blog post details',
@@ -113,7 +105,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function BlogPostDetail({ params }: PageProps) {
+export default async function BlogPostDetail({ params }: { params: { slug: string } }) {
   try {
     const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
