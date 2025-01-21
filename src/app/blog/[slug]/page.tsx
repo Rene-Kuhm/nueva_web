@@ -1,3 +1,4 @@
+import { Metadata } from 'next';
 import Image from 'next/image';
 import { sanityFetch } from '../../../../sanity/lib/sanityClient';
 import { Clock, User, Tag, ArrowLeft } from 'lucide-react';
@@ -41,6 +42,13 @@ interface PostDetail {
   categories: Array<{
     title: string;
   }>;
+}
+
+// Type definitions for Next.js page parameters
+interface PageParams {
+  params: {
+    slug: string;
+  };
 }
 
 // Función para convertir bloques de Sanity a texto
@@ -90,8 +98,8 @@ function getPostQuery(slug: string) {
 }
 
 export async function generateMetadata(
-  { params }: { params: { slug: string } }
-): Promise<any> {
+  { params }: PageParams
+): Promise<Metadata> {
   const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
   
   return {
@@ -105,7 +113,7 @@ export async function generateMetadata(
   };
 }
 
-export default async function BlogPostDetail({ params }: { params: { slug: string } }) {
+export default async function BlogPostDetail({ params }: PageParams) {
   try {
     const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
