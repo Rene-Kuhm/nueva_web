@@ -95,7 +95,11 @@ interface Params {
   slug: string;
 }
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+interface PageProps {
+  params: Params;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
   return {
@@ -109,7 +113,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default async function BlogPostDetail({ params }: { params: Params }) {
+export default async function BlogPostDetail({ params }: PageProps) {
   try {
     const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
 
