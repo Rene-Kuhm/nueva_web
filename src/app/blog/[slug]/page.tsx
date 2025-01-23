@@ -1,3 +1,4 @@
+import { Metadata } from 'next';
 import { client } from '../../../../sanity/lib/sanityClient';
 import { urlForImage } from '../../../../sanity/lib/sanity.image';
 import PortableText from '../../../../components/PortableText';
@@ -49,14 +50,19 @@ export default async function Post({ params }: { params: { slug: string } }) {
             className="rounded-full mr-4"
           />
         )}
-        <div>
-          <p className="font-semibold">{post.author.name}</p>
-          <p className="text-sm text-gray-500">{new Date(post.publishedAt).toLocaleDateString()}</p>
-        </div>
+        <p className="text-sm">{post.author.name}</p>
       </div>
       <div className="prose max-w-none">
         <PortableText value={post.body} />
       </div>
     </article>
   );
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const post = await getPost(params.slug);
+  return {
+    title: post?.title || 'Post no encontrado',
+    description: post?.excerpt || 'Detalles del post',
+  };
 }
