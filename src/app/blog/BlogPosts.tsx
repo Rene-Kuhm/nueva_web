@@ -55,7 +55,7 @@ export default function BlogPosts({
     <div className="grid md:grid-cols-2 gap-6">
       {filteredPosts.map((post) => (
         <a key={post._id} href={`/blog/${post.slug.current}`} className="group">
-          <article className="bg-white rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
+          <article className=" rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
             {post.image && (
               <div className="relative h-48 w-full overflow-hidden">
                 <Image
