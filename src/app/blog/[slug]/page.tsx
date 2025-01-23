@@ -59,7 +59,11 @@ export default async function Post({ params }: { params: { slug: string } }) {
   );
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
   const post = await getPost(params.slug);
   return {
     title: post?.title || 'Post no encontrado',

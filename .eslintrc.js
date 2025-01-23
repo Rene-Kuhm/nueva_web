@@ -1,18 +1,18 @@
 module.exports = {
   root: true,
-  extends: ['next/core-web-vitals'],
+  extends: [
+    'next/core-web-vitals',
+    'plugin:@typescript-eslint/recommended'
+  ],
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
   rules: {
-    // Disable specific ESLint rules if needed
+    // Customize rules as needed
     'react/jsx-key': 'off'
   },
-  overrides: [
-    {
-      files: ['*.ts', '*.tsx'],
-      parser: '@typescript-eslint/parser',
-      plugins: ['@typescript-eslint'],
-      extends: [
-        'plugin:@typescript-eslint/recommended',
-      ],
+  settings: {
+    'import/resolver': {
+      typescript: {}
     }
-  ]
+  }
 };
