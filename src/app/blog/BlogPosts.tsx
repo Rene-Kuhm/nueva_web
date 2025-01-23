@@ -89,7 +89,7 @@ export default function BlogPosts({
                       key={category}
                       className={`px-2 py-1 rounded-full text-xs ${
                         selectedCategories.includes(category)
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-blue-600 text-gray-500'
                           : 'bg-blue-50 text-blue-600'
                       }`}
                       onClick={(e) => {
@@ -109,7 +109,7 @@ export default function BlogPosts({
                       key={tag}
                       className={`px-2 py-1 rounded-full text-xs ${
                         selectedTags.includes(tag)
-                          ? 'bg-green-600 text-white'
+                          ? 'bg-green-600 text-gray-500'
                           : 'bg-green-50 text-green-600'
                       }`}
                       onClick={(e) => {
