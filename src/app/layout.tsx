@@ -61,7 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Metadatos críticos */}
         <meta charSet="utf-8" />
-        <title>{baseMetadata.title as string}</title>
+        <title>{typeof baseMetadata.title === 'object' ? baseMetadata.title.default : baseMetadata.title}</title>
         <meta name="description" content={baseMetadata.description as string} />
         <meta name="keywords" content={keywords} />
         <meta

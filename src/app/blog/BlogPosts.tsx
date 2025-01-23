@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Clock, User } from 'lucide-react';
 import { urlForImage } from '../../../sanity/lib/sanity.image';
@@ -8,41 +8,44 @@ import { BlogPost } from '../../lib/types';
 
 export default function BlogPosts({
   initialPosts,
-  initialCategories = [],
   initialTags = [],
   onFilterChange,
+  onCategorySelect,
 }: {
   initialPosts: BlogPost[];
-  initialCategories?: string[];
   initialTags?: string[];
   onFilterChange?: (categories: string[], tags: string[]) => void;
+  onCategorySelect?: (category: string) => void;
 }) {
-  const [posts] = useState<BlogPost[]>(initialPosts);
-  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>(initialPosts);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategories);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
 
-  useEffect(() => {
-    const filtered = posts.filter((post) => {
-      const categoryMatch =
-        selectedCategories.length === 0 ||
-        (post.categories && selectedCategories.some((cat) => post.categories.includes(cat)));
+  // Memoize unique categories and filtered posts to prevent unnecessary re-renders
+  const uniqueCategories = useMemo(() => 
+    Array.from(new Set(initialPosts.flatMap(post => post.categories || []))),
+    [initialPosts]
+  );
 
+  const filteredPosts = useMemo(() => {
+    return initialPosts.filter((post) => {
       const tagMatch =
         selectedTags.length === 0 ||
         (post.tags && selectedTags.some((tag) => post.tags.includes(tag)));
 
-      return categoryMatch && tagMatch;
+      return tagMatch;
     });
+  }, [initialPosts, selectedTags]);
 
-    setFilteredPosts(filtered);
-    onFilterChange?.(selectedCategories, selectedTags);
-  }, [selectedCategories, selectedTags, posts, onFilterChange]);
+  // Use useEffect to call onFilterChange when dependencies change
+  useEffect(() => {
+    onFilterChange?.([...uniqueCategories], selectedTags);
+  }, [uniqueCategories, selectedTags, onFilterChange]);
 
   const handleCategoryToggle = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-    );
+    // If onCategorySelect is provided, use it directly
+    if (onCategorySelect) {
+      onCategorySelect(category);
+      return;
+    }
   };
 
   const handleTagToggle = (tag: string) => {
@@ -85,20 +88,16 @@ export default function BlogPosts({
               {post.categories && post.categories.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {post.categories.map((category) => (
-                    <span
+                    <button
                       key={category}
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        selectedCategories.includes(category)
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-blue-50 text-blue-600'
-                      }`}
+                      className="px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-600 hover:bg-blue-100"
                       onClick={(e) => {
                         e.preventDefault();
                         handleCategoryToggle(category);
                       }}
                     >
                       {category}
-                    </span>
+                    </button>
                   ))}
                 </div>
               )}

@@ -1,7 +1,5 @@
 'use client';
 
-import { SmoothScroll } from '@/components/smooth-scroll';
-import  ScrollToTop  from '@/components/scroll-to-top'; // Import the ScrollToTop component
 import { motion } from 'framer-motion';
 import {
   Code,
@@ -25,6 +23,9 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ContactForm } from '@/components/contact-form';
+import { getPosts } from '@/lib/posts';
+import Image from 'next/image';
+import React from 'react';
 
 const services = [
   {
@@ -79,136 +80,205 @@ const stats = [
   { icon: Zap, value: '24/7', label: 'Soporte Técnico' },
 ];
 
-const posts = [
-  {
-    title: 'Desarrollo Web Moderno',
-    excerpt:
-      'Descubre las últimas tendencias en desarrollo web y cómo implementarlas en tus proyectos.',
-    author: 'Juan Pérez',
-    readTime: '5 minutos',
-    tags: ['Desarrollo Web', 'Tendencias'],
-  },
-  {
-    title: 'Apps Nativas vs Híbridas',
-    excerpt:
-      '¿Cuál es la mejor opción para tu proyecto? Analizamos pros y contras de cada enfoque.',
-    author: 'María García',
-    readTime: '10 minutos',
-    tags: ['Apps Móviles', 'Desarrollo'],
-  },
-  {
-    title: 'Seguridad en Aplicaciones',
-    excerpt:
-      'Mejores prácticas para mantener tus aplicaciones seguras y proteger los datos de usuarios.',
-    author: 'Carlos López',
-    readTime: '8 minutos',
-    tags: ['Seguridad', 'Desarrollo'],
-  },
-];
+const BackgroundAnimation = () => {
+  const generateGeometricShapes = () => {
+    return Array.from({ length: 20 }, () => ({
+      type: ['triangle', 'circle', 'square'][Math.floor(Math.random() * 3)],
+      x: Math.random() * 1500 - 250,
+      y: Math.random() * 1000 - 250,
+      size: Math.random() * 100 + 50,
+      color: [
+        'bg-primary/30',
+        'bg-blue-500/30',
+        'bg-green-500/30',
+        'bg-purple-500/30',
+        'bg-red-500/30',
+      ][Math.floor(Math.random() * 5)],
+      rotation: Math.random() * 360,
+      animationDuration: Math.random() * 10 + 5,
+      animationDelay: Math.random() * 3,
+    }));
+  };
+
+  const [shapes, setShapes] = React.useState([]);
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setShapes(generateGeometricShapes());
+    setIsClient(true);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 -z-10 w-full overflow-hidden">
+      {isClient &&
+        shapes.map((shape, index) => (
+          <motion.div
+            key={index}
+            className={`absolute ${shape.color} ${
+              shape.type === 'triangle'
+                ? 'clip-path-triangle'
+                : shape.type === 'circle'
+                  ? 'rounded-full'
+                  : 'rounded-none'
+            }`}
+            style={{
+              width: `${shape.size}px`,
+              height: `${shape.size}px`,
+              transform: `rotate(${shape.rotation}deg)`,
+            }}
+            initial={{
+              opacity: 0,
+              scale: 0,
+              x: shape.x - 750,
+              y: shape.y - 500,
+            }}
+            animate={{
+              opacity: [0, 0.9, 0],
+              scale: [0, 1.2, 0],
+              x: [shape.x - 750, shape.x, shape.x + 750],
+              y: [shape.y - 500, shape.y, shape.y + 500],
+              rotate: [0, shape.rotation, 0],
+            }}
+            transition={{
+              duration: shape.animationDuration,
+              delay: shape.animationDelay,
+              repeat: Infinity,
+              repeatType: 'loop',
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+
+      {/* Light Overlay Effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/10 mix-blend-overlay" />
+    </div>
+  );
+};
 
 export default function Home() {
+  const [posts, setPosts] = React.useState([]);
+
+  React.useEffect(() => {
+    async function fetchPosts() {
+      const fetchedPosts = await getPosts();
+      setPosts(fetchedPosts);
+    }
+    fetchPosts();
+  }, []);
+
   return (
     <>
-      <SmoothScroll />
       <main className="relative">
         {/* Hero Section */}
         <motion.section
-          id="home"
-          className="relative min-h-[100vh] overflow-hidden"
-          style={{
-            perspective: '1000px',
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            type: 'spring',
+            stiffness: 50,
+            damping: 10,
+            duration: 1,
           }}
+          className="relative min-h-[100vh] overflow-hidden"
         >
+          {/* Decorative Background Elements */}
+          <BackgroundAnimation />
+
           <motion.div
-            className="relative flex h-full w-full items-center justify-center"
-            initial={{ opacity: 0, rotateX: 45, scale: 0.9 }}
-            animate={{ opacity: 1, rotateX: 0, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            style={{
-              transformStyle: 'preserve-3d',
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{
+              type: 'spring',
+              stiffness: 70,
+              damping: 15,
+              delay: 0.2,
             }}
+            className="container relative mx-auto px-4"
           >
-            <div className="container relative mx-auto px-4">
-              <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-12 py-20 text-center">
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className="max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
-                >
-                  Transformamos Ideas en{' '}
-                  <span className="text-primary">Experiencias Digitales</span> Excepcionales
-                </motion.h1>
-
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
-                  className="max-w-2xl text-lg text-muted-foreground sm:text-xl"
-                >
-                  Somos expertos en desarrollo web y diseño de interfaces. Creamos soluciones
-                  digitales innovadoras que impulsan el éxito de tu negocio.
-                </motion.p>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.6 }}
-                  className="flex justify-center"
-                >
-                  <Link href="#contact">
-                    <Button size="lg" className="gap-2 text-lg">
-                      Contáctanos
-                      <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.8 }}
-                  className="flex justify-center space-x-4"
-                >
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                </motion.div>
-              </div>
-            </div>
-
-            {/* Elementos decorativos animados */}
-            <div className="absolute inset-0 -z-10 h-screen w-full overflow-hidden">
-              {[...Array(20)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute h-40 w-40 rounded-full bg-primary/5"
-                  initial={{
-                    x: 500,
-                    y: 500,
-                    scale: 0,
-                  }}
-                  animate={{
-                    x: 700,
-                    y: 700,
-                    scale: 1.5,
-                  }}
+            <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-12 py-20 text-center">
+              <motion.h1
+                initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 100,
+                  damping: 15,
+                  delay: 0.3,
+                }}
+                className="max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
+              >
+                Transformamos Ideas en{' '}
+                <motion.span
+                  initial={{ opacity: 0, x: -50, scale: 0.8 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
                   transition={{
-                    duration: 10,
-                    repeat: Infinity,
-                    repeatType: 'reverse',
+                    type: 'spring',
+                    stiffness: 120,
+                    damping: 15,
+                    delay: 0.4,
                   }}
-                />
-              ))}
+                  className="text-primary"
+                >
+                  Experiencias Digitales
+                </motion.span>{' '}
+                Excepcionales
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 80,
+                  damping: 15,
+                  delay: 0.4,
+                }}
+                className="max-w-2xl text-lg text-muted-foreground sm:text-xl"
+              >
+                Somos expertos en desarrollo web y diseño de interfaces. Creamos soluciones
+                digitales innovadoras que impulsan el éxito de tu negocio.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 70, scale: 0.7 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 90,
+                  damping: 15,
+                  delay: 0.5,
+                }}
+                className="flex justify-center"
+              >
+                <Link href="#contact">
+                  <Button size="lg" className="gap-2 text-lg">
+                    Contáctanos
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 80, scale: 0.6 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 100,
+                  damping: 15,
+                  delay: 0.6,
+                }}
+                className="flex justify-center space-x-4"
+              >
+                <div className="h-2 w-2 rounded-full bg-primary" />
+                <div className="h-2 w-2 rounded-full bg-primary" />
+                <div className="h-2 w-2 rounded-full bg-primary" />
+              </motion.div>
             </div>
           </motion.div>
         </motion.section>
 
         {/* Services Section */}
-        <section
-          id="services"
-          className="relative bg-muted/50 py-20 dark:bg-muted/10"
-        >
+        <section id="services" className="relative bg-muted/50 py-20 dark:bg-muted/10">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -262,10 +332,7 @@ export default function Home() {
         </section>
 
         {/* About Section */}
-        <section
-          id="about"
-          className="relative overflow-hidden py-20"
-        >
+        <section id="about" className="relative overflow-hidden py-20">
           <div className="container mx-auto px-4">
             <div className="grid gap-12 md:grid-cols-2">
               <motion.div
@@ -352,8 +419,8 @@ export default function Home() {
                       transition={{ duration: 0.5, delay: 0.2 }}
                       className="text-primary"
                     >
-                      <span className="text-blue-500">import</span> {'{'} NextJS, React,
-                      TypeScript {'}'} <span className="text-blue-500">from</span>{' '}
+                      <span className="text-blue-500">import</span> {'{'} NextJS, React, TypeScript{' '}
+                      {'}'} <span className="text-blue-500">from</span>{' '}
                       <span className="text-orange-500">&quot;@modern-stack&quot;</span>;
                     </motion.div>
 
@@ -404,8 +471,7 @@ export default function Home() {
                         </span>
                         <br />
                         <span className="ml-12">
-                          quality:{' '}
-                          <span className="text-orange-500">&quot;exceptional&quot;</span>,
+                          quality: <span className="text-orange-500">&quot;exceptional&quot;</span>,
                         </span>
                         <br />
                         <span className="ml-12">
@@ -460,55 +526,51 @@ export default function Home() {
         </section>
 
         {/* Blog Section */}
-        <section
-          id="blog"
-          className="py-24"
-        >
+        <section id="blog" className="py-24">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center"
             >
-              <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-                Últimas Publicaciones
-              </h2>
-              <p className="mx-auto mb-12 max-w-2xl text-muted-foreground">
+              <h2 className="mb-4 text-center text-3xl font-bold">Nuestro Blog</h2>
+              <p className="mx-auto max-w-2xl text-center text-muted-foreground">
                 Explora nuestros artículos más recientes sobre desarrollo web, tecnología y mejores
                 prácticas
               </p>
             </motion.div>
 
             <div className="mb-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {posts.slice(0, 3).map((post, index) => (
-                <motion.article
-                  key={post.title}
+              {posts.map((post) => (
+                <motion.div
+                  key={post._id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group relative overflow-hidden rounded-lg border bg-card transition-all hover:shadow-lg"
+                  transition={{ duration: 0.5 }}
+                  className="group relative overflow-hidden rounded-lg border bg-background shadow-sm transition-all hover:shadow-lg"
                 >
-                  <div className="aspect-video overflow-hidden bg-muted">
-                    <div className="h-full bg-muted" />
-                  </div>
-                  <div className="p-6">
-                    <div className="mb-3 flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span className="inline-flex items-center space-x-1">
-                        <Users className="h-4 w-4" />
-                        <span>{post.author}</span>
-                      </span>
-                      <span className="inline-flex items-center space-x-1">
-                        <Timer className="h-4 w-4" />
-                        <span>{post.readTime}</span>
-                      </span>
+                  {post.image?.asset?.url && (
+                    <div className="relative aspect-video w-full overflow-hidden">
+                      <Image
+                        src={post.image.asset.url}
+                        alt={post.title}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
                     </div>
+                  )}
+                  <div className="p-6">
                     <h3 className="mb-2 text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
                       {post.title}
                     </h3>
                     <p className="mb-4 line-clamp-2 text-muted-foreground">{post.excerpt}</p>
-                    <div className="mb-4 flex flex-wrap gap-2">
+                    <div className="mb-4 flex items-center space-x-4 text-sm text-muted-foreground">
+                      <span>{post.author}</span>
+                      <span>{post.readTime}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       {post.tags.map((tag) => (
                         <span
                           key={tag}
@@ -518,43 +580,23 @@ export default function Home() {
                         </span>
                       ))}
                     </div>
-                    <Link
-                      href="/blog"
-                      className="group/link inline-flex items-center text-sm font-medium text-primary"
-                    >
-                      Leer más{' '}
-                      <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover/link:translate-x-1" />
-                    </Link>
                   </div>
-                </motion.article>
+                </motion.div>
               ))}
-            </div>
-
-            <div className="text-center">
-              <Link href="/blog">
-                <Button size="lg" className="gap-2">
-                  Ver todas las publicaciones
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
             </div>
           </div>
         </section>
 
         {/* Contact Section */}
-        <section
-          id="contact"
-          className="py-24"
-        >
+        <section id="contact" className="py-24">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center"
             >
-              <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">Contáctanos</h2>
-              <p className="mx-auto mb-12 max-w-2xl text-muted-foreground">
+              <h2 className="mb-4 text-center text-3xl font-bold">Contáctanos</h2>
+              <p className="mx-auto max-w-2xl text-center text-muted-foreground">
                 ¿Tienes un proyecto en mente? ¡Nos encantaría escucharte! Completa el formulario y
                 te contactaremos lo antes posible.
               </p>
@@ -565,7 +607,6 @@ export default function Home() {
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                className="space-y-8"
               >
                 <div>
                   <h3 className="mb-3 text-lg font-semibold">Información de Contacto</h3>
@@ -638,8 +679,6 @@ export default function Home() {
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="relative"
               >
                 {/* Decorative elements */}
                 <div className="absolute -left-16 top-0 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
@@ -653,9 +692,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        {/* Botón Scroll to Top */}
-        <ScrollToTop />
       </main>
     </>
   );
