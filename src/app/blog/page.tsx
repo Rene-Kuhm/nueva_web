@@ -1,142 +1,202 @@
-import { Suspense } from 'react';
-import Link from 'next/link';
+import React, { Suspense } from 'react';
+import { Metadata } from 'next';
 import Image from 'next/image';
-import { Clock, User, Tag } from 'lucide-react';
+import { Clock, User } from 'lucide-react';
+import { urlForImage } from '../../../sanity/lib/sanity.image';
 import { sanityFetch } from '../../../sanity/lib/sanityClient';
+import BlogClient from './BlogClient';
+import BlogPosts from './BlogPosts';
+import BlogPostsSkeleton from './BlogPostsSkeleton';
+import { BlogPost, BlogData } from '../../lib/types';
 
-// Interfaz de Post actualizada
-interface Post {
-  _id: string;
-  title: string;
-  description: string;
-  author: string;
-  publishedAt: string;
-  image?: string;
-  tags: string[];
-  slug: {
-    current: string;
-  };
+// Metadata for the page
+export const metadata: Metadata = {
+  title: 'Blog | Nueva Web',
+  description: 'Explora los últimos artículos y publicaciones de Nueva Web',
+};
+
+const POSTS_QUERY = `{
+  "posts": *[_type == "post"] | order(publishedAt desc) {
+    _id,
+    title,
+    "description": coalesce(excerpt, "No description available"),
+    "author": author->name,
+    publishedAt,
+    "image": mainImage.asset->url,
+    "categories": coalesce(categories[]->title, []),
+    "tags": coalesce(tags[]->title, []),
+    slug
+  }[0...10],
+  "allCategories": *[_type == "category"] {
+    _id,
+    title
+  } | order(title asc),
+  "allTags": *[_type == "tag"] | order(_createdAt desc) {
+    _id,
+    title,
+    _createdAt
+  }
+}`;
+
+// Type guard to ensure string type
+function isValidString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
 }
 
-// Consulta actualizada para incluir slug
-const POSTS_QUERY = `*[_type == "post"] | order(publishedAt desc) {
-  _id,
-  title,
-  "description": coalesce(excerpt, "No description available"),
-  "author": author->name,
-  publishedAt,
-  "image": mainImage.asset->url,
-  "tags": categories[]->title,
-  slug
-}[0...10]`;
-
-// Loading component
-function BlogPostsSkeleton() {
-  return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="text-center">
-        <p className="text-xl animate-pulse">Cargando publicaciones...</p>
-      </div>
-    </div>
-  );
-}
-
-// Async Server Component for fetching blog posts
-async function BlogPosts() {
+async function fetchBlogData(): Promise<BlogData> {
   try {
-    // Validate configuration
-    const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-    const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
+    // Debug: Consulta específica para tags
+    const debugTagsQuery = `*[_type == "tag"] {
+      _id,
+      title,
+      _createdAt,
+      "usedInPosts": count(*[_type == "post" && references(^._id)])
+    }`;
+    const debugTags = await sanityFetch(debugTagsQuery);
+    console.log('Debug - Todos los tags en Sanity:', JSON.stringify(debugTags, null, 2));
 
-    if (!projectId || !dataset) {
-      return <div className="text-red-500">Configuración de Sanity incompleta</div>;
-    }
+    // Debug: Consulta específica para categorías
+    const allCategoriesQuery = `*[_type == "category"] {
+      _id,
+      title,
+      "usedInPosts": count(*[_type == "post" && references(^._id)])
+    }`;
+    const allCategories = await sanityFetch(allCategoriesQuery);
+    console.log('Debug - Todas las categorías en Sanity:', JSON.stringify(allCategories, null, 2));
 
-    // Fetch posts
-    try {
-      const posts = await sanityFetch<Post[]>(POSTS_QUERY);
-      
-      // Validate fetched posts
-      if (!posts || posts.length === 0) {
-        return <div className="text-yellow-500 text-center py-10">No se encontraron publicaciones</div>;
-      }
+    const data = (await sanityFetch(POSTS_QUERY)) as {
+      posts: (BlogPost & {
+        categories: string[];
+        tags: string[];
+      })[];
+      allCategories: { _id: string; title: string }[];
+      allTags: { _id: string; title: string; _createdAt: string }[];
+    };
 
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold text-center mb-12 text-gray-800">Publicaciones del Blog</h1>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
-              <Link 
-                key={post._id} 
-                href={`/blog/${post.slug.current}`}
-                className="group"
-              >
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105">
-                  {post.image && (
-                    <div className="relative w-full h-56">
-                      <Image 
-                        src={post.image} 
-                        alt={post.title} 
-                        fill 
-                        className="object-cover group-hover:opacity-80 transition-opacity"
-                      />
-                    </div>
-                  )}
-                  <div className="p-6">
-                    <h2 className="text-xl font-bold mb-3 text-gray-900 group-hover:text-blue-600 transition-colors">
-                      {post.title}
-                    </h2>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      {post.description}
-                    </p>
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <User className="mr-2" size={16} />
-                        <span>{post.author}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="mr-2" size={16} />
-                        <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    {post.tags && post.tags.length > 0 && (
-                      <div className="mt-4 flex items-center text-sm text-gray-500">
-                        <Tag className="mr-2" size={16} />
-                        <div className="flex space-x-2">
-                          {post.tags.map((tag) => (
-                            <span 
-                              key={tag} 
-                              className="bg-gray-100 px-2 py-1 rounded-full"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      );
-    } catch (fetchError) {
-      console.error('Error al cargar publicaciones:', fetchError);
-      return <div className="text-red-500 text-center py-10">No se pudieron cargar las publicaciones</div>;
-    }
-  } catch (err) {
-    console.error('Error inesperado:', err);
-    return <div className="text-red-500 text-center py-10">Ocurrió un error inesperado</div>;
+    // Add debug logging to see the raw data
+    console.log('Raw Sanity Data:', JSON.stringify(data, null, 2));
+
+    // Get unique categories from posts since allCategories is empty
+    const categoriesFromPosts = Array.from(
+      new Set(data.posts.flatMap((post) => post.categories ?? []).filter(isValidString))
+    );
+
+    // Get unique tags from posts since allTags is empty
+    const tagsFromPosts = Array.from(
+      new Set(data.posts.flatMap((post) => post.tags ?? []).filter(isValidString))
+    );
+
+    // Procesar posts: eliminar categorías y tags nulos o vacíos
+    const processedPosts = data.posts.map((post) => ({
+      ...post,
+      categories: (post.categories ?? []).filter(isValidString),
+      tags: (post.tags ?? []).filter(isValidString),
+    })) as BlogPost[];
+
+    // Use categories and tags from posts if the allCategories/allTags queries are empty
+    const uniqueCategories =
+      data.allCategories.length > 0
+        ? data.allCategories.map((cat) => cat.title).filter(isValidString)
+        : categoriesFromPosts;
+
+    const uniqueTags =
+      data.allTags.length > 0
+        ? data.allTags.map((tag) => tag.title).filter(isValidString)
+        : tagsFromPosts;
+
+    // Depuración
+    console.log('Processed Posts:', JSON.stringify(processedPosts, null, 2));
+    console.log('Unique Categories:', uniqueCategories);
+    console.log('Unique Tags:', uniqueTags);
+
+    return {
+      posts: processedPosts,
+      uniqueCategories,
+      uniqueTags,
+    };
+  } catch (error) {
+    console.error('Error fetching blog data:', error);
+    return {
+      posts: [],
+      uniqueCategories: [],
+      uniqueTags: [],
+    };
   }
 }
-
-// Main Page Component
-export default function BlogPage() {
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const { posts, uniqueCategories, uniqueTags } = await fetchBlogData();
+  const searchTerm = searchParams?.search ?? '';
   return (
-    <Suspense fallback={<BlogPostsSkeleton />}>
-      <BlogPosts />
-    </Suspense>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <form action="/blog" method="get" className="mb-8">
+          <input
+            type="search"
+            name="search"
+            placeholder="Buscar en el blog..."
+            defaultValue={typeof searchTerm === 'string' ? searchTerm : ''}
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </form>
+
+        {posts.length > 0 && (
+          <div className="mb-12">
+            <a
+              href={`/blog/${posts[0].slug.current}`}
+              className="group block relative h-[400px] rounded-xl overflow-hidden shadow-lg"
+            >
+              {posts[0].image && (
+                <Image
+                  src={
+                    urlForImage(posts[0].image).width(1200).height(600).url() || '/placeholder.svg'
+                  }
+                  alt={posts[0].title}
+                  width={1200}
+                  height={600}
+                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                <div className="p-8 text-white">
+                  <h1 className="text-4xl font-bold mb-4 group-hover:text-blue-300 transition-colors">
+                    {posts[0].title}
+                  </h1>
+                  <p className="mb-4 line-clamp-2">{posts[0].description}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4" />
+                      <span>{posts[0].author}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{new Date(posts[0].publishedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          <main className="lg:w-3/4">
+            <Suspense fallback={<BlogPostsSkeleton />}>
+              <BlogPosts
+                initialPosts={posts.slice(1)}
+                initialCategories={uniqueCategories}
+                initialTags={uniqueTags}
+              />
+            </Suspense>
+          </main>
+          <aside className="lg:w-1/4">
+            <BlogClient initialCategories={uniqueCategories} initialTags={uniqueTags} />
+          </aside>
+        </div>
+      </div>
+    </div>
   );
 }

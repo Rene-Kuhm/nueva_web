@@ -1,196 +1,62 @@
-import { Metadata } from 'next';
+import { client } from '../../../../sanity/lib/sanityClient';
+import { urlForImage } from '../../../../sanity/lib/sanity.image';
+import PortableText from '../../../../components/PortableText';
 import Image from 'next/image';
-import { sanityFetch } from '../../../../sanity/lib/sanityClient';
-import { Clock, User, Tag, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 
-// Interfaz para el post detallado
-interface SanityBlock {
-  _type: 'block';
-  children: Array<{
-    text: string;
-    _type: string;
-    marks?: string[];
-  }>;
-  style?: string;
-  markDefs?: Array<{
-    _type: string;
-    _key: string;
-  }>;
-}
-
-interface PostDetail {
-  _id: string;
-  title: string;
-  body: SanityBlock[];
-  description: string;
-  author: {
-    name: string;
-    bio?: string;
-    image?: {
-      asset: {
-        url: string;
-      };
-    };
-  };
-  publishedAt: string;
-  mainImage?: {
-    asset: {
-      url: string;
-    };
-  };
-  categories: Array<{
-    title: string;
-  }>;
-}
-
-// Type definitions for Next.js page parameters
-interface PageParams {
-  params: {
-    slug: string;
-  };
-}
-
-// Función para convertir bloques de Sanity a texto
-function blocksToText(blocks: SanityBlock[]): string {
-  return blocks
-    .map((block) => {
-      if (block._type === 'block' && block.children) {
-        return block.children.map((child) => child.text).join(' ');
+async function getPost(slug: string) {
+  return client.fetch(
+    `
+    *[_type == "post" && slug.current == $slug][0] {
+      title,
+      slug,
+      mainImage,
+      body,
+      publishedAt,
+      author-> {
+        name,
+        image
       }
-      return '';
-    })
-    .filter(Boolean)
-    .join(' ');
-}
-
-// Función para obtener URL de imagen
-function imageUrl(url: string) {
-  return url ? `${url}?fit=max&w=1200&h=600` : '';
-}
-
-// Consulta para obtener el post por slug
-function getPostQuery(slug: string) {
-  return `*[_type == "post" && slug.current == "${slug}"][0] {
-    _id,
-    title,
-    body,
-    description,
-    "author": author->{
-      name,
-      bio,
-      image {
-        asset->{
-          url
-        }
-      }
-    },
-    publishedAt,
-    mainImage {
-      asset->{
-        url
-      }
-    },
-    categories[]->{
-      title
     }
-  }`;
+  `,
+    { slug }
+  );
 }
 
-export async function generateMetadata(
-  { params }: PageParams
-): Promise<Metadata> {
-  const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
-  
-  return {
-    title: post?.title || 'Blog Post',
-    description: post?.description || 'Blog post details',
-    openGraph: {
-      title: post?.title || 'Blog Post',
-      description: post?.description || 'Blog post details',
-      images: post?.mainImage?.asset?.url ? [{ url: post.mainImage.asset.url }] : [],
-    },
-  };
-}
+export default async function Post({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
 
-export default async function BlogPostDetail({ params }: PageParams) {
-  try {
-    const post = await sanityFetch<PostDetail>(getPostQuery(params.slug));
+  if (!post) return <div>Post no encontrado</div>;
 
-    if (!post) {
-      return (
-        <div className="container mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl text-red-500">Publicación no encontrada</h1>
-          <Link href="/blog" className="text-blue-500 hover:underline mt-4 inline-block">
-            Volver al blog
-          </Link>
-        </div>
-      );
-    }
-
-    return (
-      <div className="container mx-auto max-w-4xl px-4 py-12">
-        <Link href="/blog" className="flex items-center text-gray-600 hover:text-blue-600 mb-6">
-          <ArrowLeft className="mr-2" /> Volver al blog
-        </Link>
-
-        {post.mainImage && (
-          <div className="relative w-full h-96 mb-8 rounded-xl overflow-hidden">
-            <Image
-              src={imageUrl(post.mainImage?.asset.url || '')}
-              alt={post.title}
-              width={800}
-              height={400}
-              priority
-            />
-          </div>
+  return (
+    <article className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
+      {post.mainImage && (
+        <Image
+          src={urlForImage(post.mainImage).width(1000).height(500).url() || '/placeholder.svg'}
+          alt={post.title}
+          width={1000}
+          height={500}
+          className="w-full h-auto mb-6 rounded-lg"
+        />
+      )}
+      <div className="flex items-center mb-8">
+        {post.author.image && (
+          <Image
+            src={urlForImage(post.author.image).width(40).height(40).url() || '/placeholder.svg'}
+            alt={post.author.name}
+            width={40}
+            height={40}
+            className="rounded-full mr-4"
+          />
         )}
-
-        <article>
-          <h1 className="text-4xl font-bold text-gray-900 mb-6">{post.title}</h1>
-
-          <div className="flex items-center space-x-4 mb-8 text-gray-600">
-            <div className="flex items-center">
-              <User className="mr-2" size={20} />
-              <span>{post.author.name}</span>
-            </div>
-            <div className="flex items-center">
-              <Clock className="mr-2" size={20} />
-              <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
-            </div>
-          </div>
-
-          {post.categories && post.categories.length > 0 && (
-            <div className="flex items-center mb-8">
-              <Tag className="mr-2 text-gray-500" size={20} />
-              <div className="flex space-x-2">
-                {post.categories.map((category) => (
-                  <span
-                    key={category.title}
-                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                  >
-                    {category.title}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="prose lg:prose-xl max-w-none text-gray-800">
-            {blocksToText(post.body)}
-          </div>
-        </article>
+        <div>
+          <p className="font-semibold">{post.author.name}</p>
+          <p className="text-sm text-gray-500">{new Date(post.publishedAt).toLocaleDateString()}</p>
+        </div>
       </div>
-    );
-  } catch (error) {
-    console.error('Error al cargar el post:', error);
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl text-red-500">Error al cargar la publicación</h1>
-        <Link href="/blog" className="text-blue-500 hover:underline mt-4 inline-block">
-          Volver al blog
-        </Link>
+      <div className="prose max-w-none">
+        <PortableText value={post.body} />
       </div>
-    );
-  }
+    </article>
+  );
 }

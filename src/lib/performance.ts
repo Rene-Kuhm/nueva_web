@@ -99,7 +99,7 @@ export function optimizeWebVitals() {
 
     // Optimizar recursos
     if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(() => {
+      (window as Window).requestIdleCallback(() => {
         // Tareas de baja prioridad
         prefetchCriticalResources();
       });
@@ -110,7 +110,6 @@ export function optimizeWebVitals() {
 function prefetchCriticalResources() {
   const criticalResources = [
     '/fonts/inter.woff2',
-    '/favicon.ico',
     // Añade aquí otros recursos críticos
   ];
 
