@@ -30,7 +30,7 @@ export default function BlogClient({ initialCategories, initialTags }: BlogClien
                 type="checkbox"
                 checked={selectedCategories.includes(category)}
                 onChange={() => handleCategoryToggle(category)}
-                className="form-checkbox h-4 w-4 text-blue-600"
+                className="form-checkbox h-4 w-4 text-gray-500"
               />
               <span>{category}</span>
             </label>
@@ -47,7 +47,7 @@ export default function BlogClient({ initialCategories, initialTags }: BlogClien
                 type="checkbox"
                 checked={selectedTags.includes(tag)}
                 onChange={() => handleTagToggle(tag)}
-                className="form-checkbox h-4 w-4 text-blue-600"
+                className="form-checkbox h-4 w-4 text-gray-500"
               />
               <span>{tag}</span>
             </label>
