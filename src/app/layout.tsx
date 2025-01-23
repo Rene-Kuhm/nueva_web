@@ -2,6 +2,7 @@
 
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
+import { Metadata } from 'next';
 import { baseMetadata } from './metadata';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
@@ -17,6 +18,13 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
 });
 
+// Función para extraer el título de manera segura
+function extractTitle(title: Metadata['title']): string {
+  if (typeof title === 'string') return title;
+  if (typeof title === 'object' && 'default' in title) return title.default;
+  return 'KuhmDev - Soluciones Digitales Innovadoras';
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Ejecutar optimizaciones de rendimiento al montar
   if (typeof window !== 'undefined') {
@@ -27,6 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const keywords = Array.isArray(baseMetadata.keywords)
     ? baseMetadata.keywords.join(', ')
     : baseMetadata.keywords || '';
+
+  // Extraer el título de manera segura
+  const pageTitle = extractTitle(baseMetadata.title);
 
   return (
     <html
@@ -61,7 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Metadatos críticos */}
         <meta charSet="utf-8" />
-        <title>{typeof baseMetadata.title === 'object' ? baseMetadata.title.default : baseMetadata.title}</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={baseMetadata.description as string} />
         <meta name="keywords" content={keywords} />
         <meta
