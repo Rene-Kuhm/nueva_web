@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Clock, User, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Clock, User, X, ChevronLeft } from 'lucide-react';
 import { urlForImage } from '../../../sanity/lib/sanity.image';
 import BlogClient from './BlogClient';
 import BlogPosts from './BlogPosts';
@@ -20,61 +21,109 @@ export default function BlogPageClient({
   uniqueCategories,
   uniqueTags,
 }: BlogPageClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const category = searchParams?.get('category');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredPosts, setFilteredPosts] = useState(posts);
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
 
-  // Take the first 2 posts for the carousel
-  const carouselPosts = posts.slice(0, 2);
+  // Take the first 2 posts for the carousel, ensuring they have images
+  const carouselPosts = posts
+    .filter(post => post.image && post.image !== '/placeholder.jpg')
+    .slice(0, 2);
+
+  const filterPosts = useCallback(() => {
+    let result = posts;
+
+    // Filter by category first
+    if (category) {
+      result = result.filter(post => 
+        post.categories.some(cat => 
+          cat.toLowerCase() === category.toLowerCase()
+        )
+      );
+    }
+
+    // Then filter by search query
+    if (searchQuery) {
+      result = result.filter(
+        (post) =>
+          post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.categories.some(cat => 
+            cat.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      );
+    }
+
+    setFilteredPosts(result);
+  }, [posts, category, searchQuery]);
 
   useEffect(() => {
-    // Auto-advance carousel every 5 seconds
-    const carouselInterval = setInterval(() => {
-      setCurrentCarouselIndex((prev) => (prev + 1) % carouselPosts.length);
-    }, 5000);
+    filterPosts();
+  }, [filterPosts]);
 
-    return () => clearInterval(carouselInterval);
+  useEffect(() => {
+    // Auto-advance carousel every 5 seconds, but only if there are carousel posts
+    if (carouselPosts.length > 1) {
+      const carouselInterval = setInterval(() => {
+        setCurrentCarouselIndex((prev) => (prev + 1) % carouselPosts.length);
+      }, 5000);
+
+      return () => clearInterval(carouselInterval);
+    }
   }, [carouselPosts.length]);
 
-  useEffect(() => {
-    // Filter posts based on search query
-    const filtered = posts.filter(
-      (post) =>
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.categories.some(cat => 
-          cat.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-    );
-    setFilteredPosts(filtered);
-  }, [searchQuery, posts]);
-
-  const handleCategorySelect = (category: string) => {
-    // Filter posts by the selected category
-    const filtered = posts.filter(post => 
-      post.categories.includes(category)
-    );
-    setFilteredPosts(filtered);
-    // Reset search query when selecting a category
-    setSearchQuery('');
+  const handleCategorySelect = (selectedCategory: string) => {
+    // Update URL with category parameter
+    router.push(`/blog?category=${encodeURIComponent(selectedCategory)}`);
   };
 
   const clearFilters = () => {
     setSearchQuery('');
-    setFilteredPosts(posts);
+    router.push('/blog');
+  };
+
+  const handleGoBack = () => {
+    router.back();
   };
 
   return (
     <div className="blog-page w-full pt-24">
+      {/* Back Button for navigation */}
+      <div className="px-4 mb-4 flex items-center justify-between">
+        <button 
+          onClick={handleGoBack}
+          className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          <ChevronLeft size={24} />
+          <span>Volver</span>
+        </button>
+        
+        {/* Clear Filters Button */}
+        {(category || searchQuery) && (
+          <button 
+            onClick={clearFilters}
+            className="flex items-center space-x-2 text-red-600 hover:text-red-800 transition-colors"
+          >
+            <X size={24} />
+            <span>Limpiar Filtros</span>
+          </button>
+        )}
+      </div>
+
       {/* Header Section */}
       <div className="mb-12 text-center px-4">
         <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Explora Nuestro Blog
+          {category ? `Categoría: ${category}` : 'Explora Nuestro Blog'}
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Descubre ideas innovadoras, consejos prácticos y las últimas tendencias en tecnología y
-          desarrollo web.
+          {category 
+            ? `Artículos relacionados con la categoría ${category}` 
+            : 'Descubre ideas innovadoras, consejos prácticos y las últimas tendencias en tecnología y desarrollo web.'}
         </p>
       </div>
 
@@ -126,38 +175,38 @@ export default function BlogPageClient({
         <div className="mb-12 px-4">
           <div className="relative w-full h-[400px] overflow-hidden rounded-xl">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={currentCarouselIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1 }}
-                className="absolute inset-0"
-              >
-                <Image
-                  src={carouselPosts[currentCarouselIndex].image || '/placeholder.jpg'}
-                  alt={carouselPosts[currentCarouselIndex].title}
-                  layout="fill"
-                  objectFit="cover"
-                  className="absolute inset-0 z-0"
-                />
-                <div className="absolute inset-0 bg-black/50 z-10"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-8 z-20 text-white">
-                  <h2 className="text-3xl font-bold mb-3">
-                    {carouselPosts[currentCarouselIndex].title}
-                  </h2>
-                  <p className="text-lg mb-4">{carouselPosts[currentCarouselIndex].description}</p>
-                  <div className="flex items-center space-x-4">
-                    <span>{carouselPosts[currentCarouselIndex].author}</span>
-                    <span>•</span>
-                    <span>
-                      {new Date(
-                        carouselPosts[currentCarouselIndex].publishedAt
-                      ).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
+              {carouselPosts.map((post, index) => (
+                index === currentCarouselIndex && (
+                  <motion.div
+                    key={`carousel-${post._id}-${index}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1 }}
+                    className="absolute inset-0"
+                  >
+                    <Image
+                      src={post.image || '/placeholder.jpg'}
+                      alt={post.title}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      className="absolute inset-0 z-0"
+                    />
+                    <div className="absolute inset-0 bg-black/50 z-10"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-8 z-20 text-white">
+                      <h2 className="text-3xl font-bold mb-3">{post.title}</h2>
+                      <p className="text-lg mb-4">{post.description}</p>
+                      <div className="flex items-center space-x-4">
+                        <span>{post.author}</span>
+                        <span>•</span>
+                        <span>
+                          {new Date(post.publishedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              ))}
             </AnimatePresence>
           </div>
         </div>
@@ -171,6 +220,7 @@ export default function BlogPageClient({
               initialPosts={filteredPosts}
               initialTags={uniqueTags}
               onCategorySelect={handleCategorySelect}
+              showBackButton={true}
             />
           </div>
         )}

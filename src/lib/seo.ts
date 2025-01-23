@@ -9,6 +9,13 @@ export interface SEOProps {
   ogImage?: string;
 }
 
+// Interfaz para JSON-LD
+export interface JsonLdProps {
+  title: string;
+  description: string;
+  canonicalUrl?: string;
+}
+
 export class SEOService {
   // Generar metadatos dinámicos
   public static generateMetadata(props: SEOProps): Metadata {
@@ -56,31 +63,40 @@ export class SEOService {
           follow: true,
           'max-video-preview': -1,
           'max-image-preview': 'large',
-          'max-snippet': -1
-        }
-      },
-      alternates: {
-        canonical: canonicalUrl
+          'max-snippet': -1,
+        },
       },
       verification: {
-        google: process.env.GOOGLE_SITE_VERIFICATION
-      }
+        google: 'googleSiteVerification',
+      },
+      alternates: {
+        canonical: canonicalUrl,
+      },
     };
   }
 
   // Generar JSON-LD para rich snippets
-  public static generateJsonLd(props: SEOProps) {
+  public static generateJsonLd(props: JsonLdProps) {
+    const { 
+      title, 
+      description, 
+      canonicalUrl = 'https://renekuhm.com' 
+    } = props;
+
     return {
       '@context': 'https://schema.org',
-      '@type': 'Person',
-      name: 'René Kuhm',
-      jobTitle: 'Desarrollador Web Full Stack',
-      url: 'https://renekuhm.com',
-      sameAs: [
-        'https://www.linkedin.com/in/renekuhm',
-        'https://github.com/renekuhm'
-      ],
-      description: props.description
+      '@type': 'WebSite',
+      name: title,
+      description: description,
+      url: canonicalUrl,
+      publisher: {
+        '@type': 'Organization',
+        name: 'René Kuhm',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://renekuhm.com/logo.png'
+        }
+      }
     };
   }
 }

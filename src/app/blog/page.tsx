@@ -1,101 +1,183 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { sanityFetch } from '../../../sanity/lib/sanityClient';
+import { generatePageMetadata } from '../metadata';
 import BlogPageClient from './BlogPageClient';
-import { BlogPost, BlogData } from '../../lib/types';
+import { client } from '../../../sanity/lib/sanityClient';
+import { groq } from 'next-sanity';
 
-// Metadata for the page
-export const metadata: Metadata = {
-  title: 'Blog | Nueva Web',
-  description: 'Explora los últimos artículos y publicaciones de Nueva Web',
-};
-
-const POSTS_QUERY = `{
-  "posts": *[_type == "post"] | order(publishedAt desc) {
-    _id,
-    title,
-    "description": coalesce(excerpt, "No description available"),
-    "author": author->name,
-    publishedAt,
-    "image": mainImage.asset->url,
-    "categories": coalesce(categories[]->title, []),
-    "tags": coalesce(tags[]->name, []),
-    slug
-  }[0...10],
-  "allCategories": *[_type == "category"] {
-    _id,
-    title
-  } | order(title asc),
-  "allTags": *[_type == "tag"] | order(_createdAt desc) {
-    _id,
-    name,
-    _createdAt
-  }
-}`;
-
-// Type guard to ensure string type
-function isValidString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim() !== '';
+// Define the shape of the Sanity query result
+interface SanityQueryResult {
+  posts: Array<{
+    _id: string;
+    title: string;
+    description?: string;
+    slug: string;
+    image?: string;
+    author?: string;
+    publishedAt: string;
+    categories?: string[];
+    tags?: string[];
+  }>;
+  allCategories: Array<{ _id: string; title: string }>;
+  allTags: Array<{ _id: string; name: string; _createdAt: string }>;
 }
 
+// Define the shape of a blog post
+interface BlogPost {
+  _id: string;
+  title: string;
+  description: string;
+  slug: { current: string };
+  image: string;
+  author: string;
+  publishedAt: string;
+  categories: string[];
+  tags: string[];
+}
+
+// Define the shape of the blog data
+interface BlogData {
+  posts: BlogPost[];
+  uniqueCategories: string[];
+  uniqueTags: string[];
+}
+
+// Definir la consulta GROQ para obtener posts
+const POSTS_QUERY = groq`
+  {
+    "posts": *[_type == "post"] | order(publishedAt desc) {
+      _id,
+      title,
+      "description": coalesce(excerpt, "No description available"),
+      "slug": slug.current,
+      "image": mainImage.asset->url,
+      "author": author->name,
+      publishedAt,
+      "categories": categories[]->title,
+      "tags": tags[]->name
+    }[0...10],
+    "allCategories": *[_type == "category"] {
+      _id,
+      title
+    } | order(title asc),
+    "allTags": *[_type == "tag"] | order(_createdAt desc) {
+      _id,
+      name,
+      _createdAt
+    }
+  }
+`;
+
+// Exponential backoff function for retrying requests
+async function fetchWithRetry<T>(
+  fetchFn: () => Promise<T>, 
+  maxRetries = 3, 
+  baseDelay = 1000
+): Promise<T> {
+  let retries = 0;
+  while (retries < maxRetries) {
+    try {
+      return await fetchFn();
+    } catch (error) {
+      retries++;
+      
+      // Log the error
+      console.error(`Fetch attempt ${retries} failed:`, error);
+      
+      // If it's the last retry, throw the error
+      if (retries === maxRetries) {
+        throw error;
+      }
+
+      // Calculate exponential backoff delay
+      const delay = baseDelay * Math.pow(2, retries);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  // This line should never be reached due to the throw in the loop, 
+  // but TypeScript requires a return
+  throw new Error('Fetch failed after maximum retries');
+}
+
+// Función para obtener posts con manejo de errores
 async function fetchBlogData(): Promise<BlogData> {
   try {
-    const data = (await sanityFetch(POSTS_QUERY)) as {
-      posts: (BlogPost & {
-        categories: string[];
-        tags: string[];
-      })[];
-      allCategories: { _id: string; title: string }[];
-      allTags: { _id: string; name: string; _createdAt: string }[];
-    };
+    const data = await fetchWithRetry<SanityQueryResult>(async () => {
+      return await client.fetch(
+        POSTS_QUERY,
+        {},
+        { 
+          cache: 'force-cache',
+          next: { 
+            revalidate: 3600 // Revalidar cada hora
+          }
+        }
+      );
+    });
 
-    // Get unique categories from posts
-    const categoriesFromPosts = Array.from(
-      new Set(data.posts.flatMap((post) => post.categories ?? []).filter(isValidString))
+    // Sanitize and validate data
+    const posts: BlogPost[] = (data.posts || []).map(post => ({
+      _id: post._id || crypto.randomUUID(), // Fallback to random UUID if no ID
+      title: post.title || 'Sin título',
+      description: post.description || 'Sin descripción',
+      slug: { current: post.slug || crypto.randomUUID() },
+      image: post.image || '/placeholder.jpg',
+      author: post.author || 'Autor desconocido',
+      publishedAt: post.publishedAt || new Date().toISOString(),
+      categories: post.categories || [],
+      tags: post.tags || []
+    }));
+
+    const uniqueCategories = Array.from(
+      new Set(posts.flatMap(post => post.categories || []))
     );
 
-    // Get unique tags from posts
-    const tagsFromPosts = Array.from(
-      new Set(data.posts.flatMap((post) => post.tags ?? []).filter(isValidString))
+    const uniqueTags = Array.from(
+      new Set(posts.flatMap(post => post.tags || []))
     );
-
-    // Process posts: remove null or empty categories and tags
-    const processedPosts = data.posts.map((post) => ({
-      ...post,
-      categories: (post.categories ?? []).filter(isValidString),
-      tags: (post.tags ?? []).filter(isValidString),
-    })) as BlogPost[];
-
-    // Use categories and tags from posts if the queries are empty
-    const uniqueCategories =
-      data.allCategories.length > 0
-        ? data.allCategories.map((cat) => cat.title).filter(isValidString)
-        : categoriesFromPosts;
-
-    const uniqueTags =
-      data.allTags.length > 0
-        ? data.allTags.map((tag) => tag.name).filter(isValidString)
-        : tagsFromPosts;
 
     return {
-      posts: processedPosts,
+      posts,
       uniqueCategories,
-      uniqueTags,
+      uniqueTags
     };
   } catch (error) {
-    console.error('Error fetching blog data:', error);
+    console.error('Critical error fetching blog data:', error);
+    
+    // More detailed error logging
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
     return {
       posts: [],
       uniqueCategories: [],
-      uniqueTags: [],
+      uniqueTags: []
     };
   }
 }
+
+export const metadata: Metadata = generatePageMetadata({
+  title: 'Blog | KuhmDev',
+  description: 'Explora los últimos artículos y publicaciones de KuhmDev'
+});
 
 export default async function BlogPage() {
   const { posts, uniqueCategories, uniqueTags } = await fetchBlogData();
 
   return (
-    <BlogPageClient posts={posts} uniqueCategories={uniqueCategories} uniqueTags={uniqueTags} />
+    <BlogPageClient 
+      posts={posts} 
+      uniqueCategories={uniqueCategories} 
+      uniqueTags={uniqueTags} 
+    />
   );
 }
+
+// Habilitar regeneración estática incremental
+export const revalidate = 3600; // Revalidar cada hora

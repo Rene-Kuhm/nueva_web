@@ -66,7 +66,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             font-style: normal;
             font-weight: 400 700;
             font-display: swap;
-            src: url('/fonts/inter.woff2') format('woff2');
+            src: url('/fonts/inter.woff2') format('woff2'),
+                 url('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50.woff2') format('woff2'),
+                 system-ui, sans-serif;
           }
         `}</style>
 
@@ -99,25 +101,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify(
               SEOService.generateJsonLd({
                 title: 'René Kuhm - Desarrollador Web Full Stack',
-                description: 'Transformando ideas en soluciones digitales innovadoras.',
+                description: baseMetadata.description as string,
               })
-            ),
+            )
           }}
         />
       </head>
-      <body
-        className="min-h-screen bg-background text-foreground flex flex-col scroll-smooth"
-        aria-label="Contenido principal de KuhmDev"
-      >
+      <body>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
           <ErrorBoundary>
             <Navbar />
-            <main className="flex-grow">{children}</main>
+            <main>{children}</main>
             <Footer />
             <ScrollToTop />
           </ErrorBoundary>
