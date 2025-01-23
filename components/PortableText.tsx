@@ -1,7 +1,8 @@
 import { PortableText as SanityPortableText } from '@portabletext/react';
-import { PortableTextComponents } from '@portabletext/types';
+import { PortableTextReactComponents } from '@portabletext/react';
+import { TypedObject } from '@portabletext/types';
 
-const components: PortableTextComponents = {
+const components: Partial<PortableTextReactComponents> = {
   block: {
     normal: ({ children }) => <p className="mb-4">{children}</p>,
     h1: ({ children }) => <h1 className="text-3xl font-bold mb-4">{children}</h1>,
@@ -9,6 +10,6 @@ const components: PortableTextComponents = {
   },
 };
 
-export default function PortableText({ value }: { value: any }) {
+export default function PortableText({ value }: { value: TypedObject[] }) {
   return <SanityPortableText value={value} components={components} />;
 }
