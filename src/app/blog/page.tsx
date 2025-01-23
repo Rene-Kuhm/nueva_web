@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import { generatePageMetadata } from '../metadata';
 import BlogPageClient from './BlogPageClient';
 import { client } from '../../../sanity/lib/sanityClient';
 import { groq } from 'next-sanity';
+import { BlogPost as ImportedBlogPost, BlogData as ImportedBlogData } from '../../lib/types';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Loader2 } from 'lucide-react';
 
 // Define the shape of the Sanity query result
 interface SanityQueryResult {
@@ -20,26 +23,6 @@ interface SanityQueryResult {
   }>;
   allCategories: Array<{ _id: string; title: string }>;
   allTags: Array<{ _id: string; name: string; _createdAt: string }>;
-}
-
-// Define the shape of a blog post
-interface BlogPost {
-  _id: string;
-  title: string;
-  description: string;
-  slug: { current: string };
-  image: string;
-  author: string;
-  publishedAt: string;
-  categories: string[];
-  tags: string[];
-}
-
-// Define the shape of the blog data
-interface BlogData {
-  posts: BlogPost[];
-  uniqueCategories: string[];
-  uniqueTags: string[];
 }
 
 // Definir la consulta GROQ para obtener posts
@@ -103,7 +86,7 @@ async function fetchWithRetry<T>(
 }
 
 // Función para obtener posts con manejo de errores
-async function fetchBlogData(): Promise<BlogData> {
+async function fetchBlogData(): Promise<ImportedBlogData> {
   try {
     const data = await fetchWithRetry<SanityQueryResult>(async () => {
       return await client.fetch(
@@ -119,7 +102,7 @@ async function fetchBlogData(): Promise<BlogData> {
     });
 
     // Sanitize and validate data
-    const posts: BlogPost[] = (data.posts || []).map(post => ({
+    const posts: ImportedBlogPost[] = (data.posts || []).map(post => ({
       _id: post._id || crypto.randomUUID(), // Fallback to random UUID if no ID
       title: post.title || 'Sin título',
       description: post.description || 'Sin descripción',
@@ -162,6 +145,15 @@ async function fetchBlogData(): Promise<BlogData> {
   }
 }
 
+// Componente de carga
+function BlogLoading() {
+  return (
+    <div className="flex justify-center items-center min-h-screen">
+      <Loader2 className="animate-spin text-primary" size={48} />
+    </div>
+  );
+}
+
 export const metadata: Metadata = generatePageMetadata({
   title: 'Blog | KuhmDev',
   description: 'Explora los últimos artículos y publicaciones de KuhmDev'
@@ -171,11 +163,15 @@ export default async function BlogPage() {
   const { posts, uniqueCategories, uniqueTags } = await fetchBlogData();
 
   return (
-    <BlogPageClient 
-      posts={posts} 
-      uniqueCategories={uniqueCategories} 
-      uniqueTags={uniqueTags} 
-    />
+    <ErrorBoundary>
+      <Suspense fallback={<BlogLoading />}>
+        <BlogPageClient 
+          posts={posts} 
+          uniqueCategories={uniqueCategories} 
+          uniqueTags={uniqueTags} 
+        />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
