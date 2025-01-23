@@ -24,7 +24,7 @@ const POSTS_QUERY = `{
     publishedAt,
     "image": mainImage.asset->url,
     "categories": coalesce(categories[]->title, []),
-    "tags": coalesce(tags[]->title, []),
+    "tags": coalesce(tags[]->name, []),
     slug
   }[0...10],
   "allCategories": *[_type == "category"] {
@@ -33,7 +33,7 @@ const POSTS_QUERY = `{
   } | order(title asc),
   "allTags": *[_type == "tag"] | order(_createdAt desc) {
     _id,
-    title,
+    name,
     _createdAt
   }
 }`;
@@ -48,7 +48,7 @@ async function fetchBlogData(): Promise<BlogData> {
     // Debug: Consulta específica para tags
     const debugTagsQuery = `*[_type == "tag"] {
       _id,
-      title,
+      name,
       _createdAt,
       "usedInPosts": count(*[_type == "post" && references(^._id)])
     }`;
@@ -70,7 +70,7 @@ async function fetchBlogData(): Promise<BlogData> {
         tags: string[];
       })[];
       allCategories: { _id: string; title: string }[];
-      allTags: { _id: string; title: string; _createdAt: string }[];
+      allTags: { _id: string; name: string; _createdAt: string }[];
     };
 
     // Add debug logging to see the raw data
@@ -101,7 +101,7 @@ async function fetchBlogData(): Promise<BlogData> {
 
     const uniqueTags =
       data.allTags.length > 0
-        ? data.allTags.map((tag) => tag.title).filter(isValidString)
+        ? data.allTags.map((tag) => tag.name).filter(isValidString)
         : tagsFromPosts;
 
     // Depuración

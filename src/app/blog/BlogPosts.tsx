@@ -109,8 +109,8 @@ export default function BlogPosts({
                       key={tag}
                       className={`px-2 py-1 rounded-full text-xs ${
                         selectedTags.includes(tag)
-                          ? 'bg-gray-600 text-white'
-                          : 'bg-gray-200 text-gray-800'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-green-50 text-green-600'
                       }`}
                       onClick={(e) => {
                         e.preventDefault();
