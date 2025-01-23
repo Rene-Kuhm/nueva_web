@@ -76,7 +76,7 @@ export default async function Page({ params }: Props) {
         {post.tags && post.tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {post.tags.map((tag: any) => (
-              <span key={tag.slug} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+              <span key={tag.slug} className="px-3 py-1 bg-gray-300 rounded-full text-sm">
                 {tag.name}
               </span>
             ))}
