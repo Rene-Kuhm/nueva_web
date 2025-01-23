@@ -20,7 +20,7 @@ export default function BlogClient({ initialCategories, initialTags }: BlogClien
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className=" p-6 rounded-lg shadow-md">
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-800">Categorías</h2>
         <div className="space-y-2">
