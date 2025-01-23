@@ -5,11 +5,11 @@ import { Clock, User } from 'lucide-react';
 
 // Consulta para obtener posts y tags
 const POSTS_QUERY = `{
-  "posts": *[_type == "post" && 
+  "posts": *[_type == "post" &&
     (
-      $searchTerm == "" || 
-      title match $searchTerm || 
-      description match $searchTerm || 
+      $searchTerm == "" ||
+      title match $searchTerm ||
+      description match $searchTerm ||
       author->name match $searchTerm
     )
   ] | order(publishedAt desc) {
@@ -25,10 +25,10 @@ const POSTS_QUERY = `{
   "allTags": *[_type == "category"].title
 }`;
 
-export async function fetchBlogData(searchTerm = "") {
+export async function fetchBlogData(searchTerm = '') {
   const { posts, allTags } = await sanityFetch(POSTS_QUERY, { searchTerm });
   const uniqueTags = [...new Set(allTags || [])];
-  
+
   return { posts, uniqueTags };
 }
 
@@ -37,11 +37,7 @@ export function BlogPosts({ posts }) {
     <div className="container mx-auto px-4">
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {posts.map((post) => (
-          <a
-            key={post._id}
-            href={`/blog/${post.slug.current}`}
-            className="group"
-          >
+          <a key={post._id} href={`/blog/${post.slug.current}`} className="group">
             <article className="bg-white rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
               {post.image && (
                 <div className="relative h-48 w-full overflow-hidden">
@@ -58,9 +54,7 @@ export function BlogPosts({ posts }) {
                 <h2 className="text-xl font-bold mb-2 text-gray-800 group-hover:text-blue-600 transition-colors">
                   {post.title}
                 </h2>
-                <p className="text-gray-600 mb-4 line-clamp-2">
-                  {post.description}
-                </p>
+                <p className="text-gray-600 mb-4 line-clamp-2">{post.description}</p>
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4" />
@@ -74,9 +68,9 @@ export function BlogPosts({ posts }) {
                 {post.tags && post.tags.length > 0 && (
                   <div className="mt-4 flex space-x-2">
                     {post.tags.map((tag) => (
-                      <span 
-                        key={tag} 
-                        className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs"
+                      <span
+                        key={tag}
+                        className="px-2 py-1 bg-gray-500 text-blue-600 rounded-full text-xs"
                       >
                         {tag}
                       </span>
@@ -97,8 +91,8 @@ export function BlogPostsSkeleton() {
     <div className="container mx-auto px-4 py-8">
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3, 4, 5, 6].map((item) => (
-          <div 
-            key={item} 
+          <div
+            key={item}
             className="bg-gray-100 animate-pulse rounded-lg overflow-hidden shadow-md"
           >
             <div className="h-48 bg-gray-300"></div>
