@@ -13,6 +13,10 @@ async function getPost(slug: string) {
       mainImage,
       body,
       publishedAt,
+      "tags": tags[]-> {
+        name,
+        slug
+      },
       author-> {
         name,
         image
@@ -56,17 +60,28 @@ export default async function Page({ params }: Props) {
           className="w-full h-auto mb-6 rounded-lg"
         />
       )}
-      <div className="flex items-center mb-8">
-        {post.author.image && (
-          <Image
-            src={urlForImage(post.author.image).width(40).height(40).url() || '/placeholder.svg'}
-            alt={post.author.name}
-            width={40}
-            height={40}
-            className="rounded-full mr-4"
-          />
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex items-center">
+          {post.author.image && (
+            <Image
+              src={urlForImage(post.author.image).width(40).height(40).url() || '/placeholder.svg'}
+              alt={post.author.name}
+              width={40}
+              height={40}
+              className="rounded-full mr-4"
+            />
+          )}
+          <p className="text-sm">{post.author.name}</p>
+        </div>
+        {post.tags && post.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {post.tags.map((tag: any) => (
+              <span key={tag.slug} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                {tag.name}
+              </span>
+            ))}
+          </div>
         )}
-        <p className="text-sm">{post.author.name}</p>
       </div>
       <div className="prose max-w-none">
         <PortableText value={post.body} />
