@@ -131,7 +131,7 @@ export default async function BlogPage({
   const { posts, uniqueCategories, uniqueTags } = await fetchBlogData();
   const searchTerm = searchParams?.search ?? '';
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen ">
       <div className="container mx-auto px-4 py-8">
         <form action="/blog" method="get" className="mb-8">
           <input
