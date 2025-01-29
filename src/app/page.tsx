@@ -581,6 +581,11 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
+                  <Link href={`/blog/${post.slug.current}`}>
+                    <Button variant="outline" className="w-full">
+                      Leer más
+                    </Button>
+                  </Link>
                 </motion.div>
               ))}
             </div>
