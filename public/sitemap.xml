@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+    
+    <url>
+        <loc>https://kuhmdev.com.ar/</loc>
+        <priority>1.0</priority>
+        <changefreq>daily</changefreq>
+        <lastmod>2025-02-02T14:20:01.158Z</lastmod>
+    </url>
+    <url>
+        <loc>https://kuhmdev.com.ar/blog</loc>
+        <priority>0.8</priority>
+        <changefreq>weekly</changefreq>
+        <lastmod>2025-02-02T14:20:01.158Z</lastmod>
+    </url>
+    <url>
+        <loc>https://kuhmdev.com.ar/about</loc>
+        <priority>0.6</priority>
+        <changefreq>monthly</changefreq>
+        <lastmod>2025-02-02T14:20:01.158Z</lastmod>
+    </url>
+    <url>
+        <loc>https://kuhmdev.com.ar/contact</loc>
+        <priority>0.5</priority>
+        <changefreq>yearly</changefreq>
+        <lastmod>2025-02-02T14:20:01.158Z</lastmod>
+    </url>
+    <url>
+        <loc>https://kuhmdev.com.ar/blog/la-inteligencia-artificial-esta-revolucionando-el-mundo</loc>
+        <priority>0.7</priority>
+        <changefreq>weekly</changefreq>
+        <lastmod>2025-01-23T01:08:39Z</lastmod>
+    </url>
+    <url>
+        <loc>https://kuhmdev.com.ar/blog/descubre-deepseek-innovacion-en-inteligencia-artificial</loc>
+        <priority>0.7</priority>
+        <changefreq>weekly</changefreq>
+        <lastmod>2025-01-23T01:07:09Z</lastmod>
+    </url>
+</urlset>

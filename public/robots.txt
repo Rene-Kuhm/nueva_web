@@ -1,0 +1,42 @@
+# Robots.txt for Nueva Web Project
+
+# Global Crawler Rules
+User-agent: *
+
+# Allow full site crawling
+Allow: /
+
+# Sitemap Location (if you have one)
+Sitemap: https://kuhmdev.com.ar/sitemap.xml
+
+# Crawl-delay to prevent overwhelming the server
+Crawl-delay: 10
+
+# Directories or files to disregard
+Disallow: /admin/
+Disallow: /private/
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /*.xml$
+
+# Specific Bot Rules
+User-agent: Googlebot
+Allow: /blog/
+Allow: /posts/
+
+User-agent: Bingbot
+Allow: /blog/
+Allow: /posts/
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+# Specific Security Recommendations
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
